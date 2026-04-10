@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
+import 'theme/fig_theme.dart';
+
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -9,7 +11,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  static const Color figBackground = Color(0xFF231143);
+  static const Color figBackground = FigColors.background;
+
 
   bool _started = false;
   bool _showFullLogo = false;

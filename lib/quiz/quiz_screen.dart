@@ -1,75 +1,10 @@
 import 'package:flutter/material.dart';
 import '../home_screen.dart';
 import '../challenge/challenge_result_screen.dart';
+import '../models/quiz_card.dart';
+import '../data/demo_data.dart';
+import '../theme/fig_theme.dart';
 
-enum CardKind { trueFalse, multipleChoice, estimation }
-
-class QuizCardData {
-  final CardKind kind;
-  final String category;
-  final String question;
-  final List<String>? options;
-  final int? correctIndex;
-  final double? min;
-  final double? max;
-  final double? correctValue;
-  final String answerLabel;
-  final String revealTitle;
-  final String revealText;
-
-  const QuizCardData({
-    required this.kind,
-    required this.category,
-    required this.question,
-    required this.answerLabel,
-    required this.revealTitle,
-    required this.revealText,
-    this.options,
-    this.correctIndex,
-    this.min,
-    this.max,
-    this.correctValue,
-  });
-}
-
-const List<QuizCardData> demoCards = [
-  QuizCardData(
-    kind: CardKind.trueFalse,
-    category: 'Mythe',
-    question:
-        'Pour des raisons biologiques, le désir sexuel est plus fort chez l’homme que chez la femme.',
-    options: ['Faux', 'Vrai'],
-    correctIndex: 0,
-    answerLabel: 'Faux',
-    revealTitle: 'Mythe très répandu',
-    revealText:
-        'Aucune base biologique ne prouve que les hommes auraient plus “besoin” de sexe. Ce mythe vient surtout de normes culturelles et d’une valorisation sociale du désir masculin.',
-  ),
-  QuizCardData(
-    kind: CardKind.multipleChoice,
-    category: 'Anatomie',
-    question: 'Combien de terminaisons nerveuses le clitoris a-t-il ?',
-    options: ['2 000', '5 000', '10 281', '20 000'],
-    correctIndex: 2,
-    answerLabel: '10 281',
-    revealTitle: 'Réponse à retenir',
-    revealText:
-        'Le clitoris possède énormément de terminaisons nerveuses, ce qui en fait une zone majeure de sensibilité. C’est aussi un bon exemple de sujet longtemps invisibilisé dans l’éducation.',
-  ),
-  QuizCardData(
-    kind: CardKind.estimation,
-    category: 'Histoire',
-    question:
-        'En quelle année l’American Psychiatric Association a-t-elle retiré l’homosexualité de sa liste des troubles mentaux ?',
-    min: 1900,
-    max: 2025,
-    correctValue: 1973,
-    answerLabel: '1973',
-    revealTitle: 'Date clé',
-    revealText:
-        'Cette décision est récente à l’échelle de l’histoire contemporaine. Elle rappelle que beaucoup de normes présentées comme “scientifiques” sont en réalité construites culturellement.',
-  ),
-];
 
 class SoloIntroPage extends StatelessWidget {
   const SoloIntroPage({super.key});
@@ -93,7 +28,7 @@ class SoloIntroPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
                 const Text(
-                  'On ne t’a pas tout appris.',
+                  'On ne t\u2019a pas tout appris.',
                   style: TextStyle(
                     fontFamily: 'Florisha',
                     fontSize: 38,
@@ -106,7 +41,7 @@ class SoloIntroPage extends StatelessWidget {
                 const Text(
                   '10 cartes pour questionner, comprendre\net voir autrement.',
                   style: TextStyle(
-                    fontFamily: 'Helvetica',
+                    fontFamily: 'Inter',
                     fontSize: 17,
                     color: Colors.white70,
                     height: 1.45,
@@ -221,7 +156,7 @@ class ChallengeWaitingPage extends StatelessWidget {
                 ),
                 const Spacer(),
                 const Text(
-                  'À l’autre de jouer.',
+                  '\u00c0 l\u2019autre de jouer.',
                   style: TextStyle(
                     fontFamily: 'Florisha',
                     fontSize: 38,
@@ -232,9 +167,9 @@ class ChallengeWaitingPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 const Text(
-                  'Ton défi est lancé, ta réponse est enregistrée, et ta série est terminée.\nÀ l’autre de jouer maintenant.',
+                  'Ton d\u00e9fi est lanc\u00e9, ta r\u00e9ponse est enregistr\u00e9e, et ta s\u00e9rie est termin\u00e9e.\n\u00c0 l\u2019autre de jouer maintenant.',
                   style: TextStyle(
-                    fontFamily: 'Helvetica',
+                    fontFamily: 'Inter',
                     fontSize: 17,
                     color: Colors.white70,
                     height: 1.45,
@@ -255,9 +190,9 @@ class ChallengeWaitingPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Ta réponse',
+                        'Ta r\u00e9ponse',
                         style: TextStyle(
-                          fontFamily: 'Helvetica',
+                          fontFamily: 'Inter',
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: Colors.white60,
@@ -268,7 +203,7 @@ class ChallengeWaitingPage extends StatelessWidget {
                       Text(
                         challengeAnswer,
                         style: const TextStyle(
-                          fontFamily: 'Helvetica',
+                          fontFamily: 'Inter',
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: figCream,
@@ -288,10 +223,10 @@ class ChallengeWaitingPage extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (_) => ChallengeResultScreen(
                             challengeQuestion:
-                                'Quelle petite révélation t’a récemment aidé·e à kiffer davantage ta sexualité ?',
+                                'Quelle petite r\u00e9v\u00e9lation t\u2019a r\u00e9cemment aid\u00e9\u00b7e \u00e0 kiffer davantage ta sexualit\u00e9 ?',
                             myAnswer: challengeAnswer,
                             opponentAnswer:
-                                'J’ai compris récemment que je pouvais arrêter de vouloir “bien faire” et commencer à me demander ce qui me faisait vraiment du bien.',
+                                'J\u2019ai compris r\u00e9cemment que je pouvais arr\u00eater de vouloir "bien faire" et commencer \u00e0 me demander ce qui me faisait vraiment du bien.',
                             myScore: 6,
                             opponentScore: 4,
                           ),
@@ -309,7 +244,7 @@ class ChallengeWaitingPage extends StatelessWidget {
                     child: const Text(
                       'Voir un recap test',
                       style: TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -339,7 +274,7 @@ class ChallengeWaitingPage extends StatelessWidget {
                     child: const Text(
                       'Retour accueil',
                       style: TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -454,7 +389,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                   child: Text(
                     _feedbackLabel(isCorrect, estimationGap),
                     style: const TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                       color: Color(0xFFE9DFC8),
                     ),
@@ -474,13 +409,13 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                 RichText(
                   text: TextSpan(
                     style: const TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: 'Inter',
                       fontSize: 16,
                       color: Colors.white70,
                       height: 1.5,
                     ),
                     children: [
-                      const TextSpan(text: 'Réponse : '),
+                      const TextSpan(text: 'R\u00e9ponse : '),
                       TextSpan(
                         text: currentCard.answerLabel,
                         style: const TextStyle(
@@ -495,7 +430,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                 Text(
                   currentCard.revealText,
                   style: const TextStyle(
-                    fontFamily: 'Helvetica',
+                    fontFamily: 'Inter',
                     fontSize: 16,
                     color: Colors.white70,
                     height: 1.5,
@@ -522,7 +457,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                           ? 'Voir le bilan'
                           : 'Carte suivante',
                       style: const TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -538,30 +473,30 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
 
   String _feedbackLabel(bool isCorrect, int? estimationGap) {
     if (currentCard.kind == CardKind.estimation && estimationGap != null) {
-      if (estimationGap <= 5) return 'Très proche';
+      if (estimationGap <= 5) return 'Tr\u00e8s proche';
       if (estimationGap <= 15) return 'Pas loin';
       return 'Date surprenante';
     }
-    return isCorrect ? 'Bien vu' : 'Piège classique';
+    return isCorrect ? 'Bien vu' : 'Pi\u00e8ge classique';
   }
 
   void _goNext() {
     if (currentIndex == widget.cards.length - 1) {
-  if (widget.onFinished != null) {
-    widget.onFinished!();
-  } else {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SoloResultPage(
-          totalCards: widget.cards.length,
-          correctAnswers: correctAnswers,
-        ),
-      ),
-    );
-  }
-  return;
-}
+      if (widget.onFinished != null) {
+        widget.onFinished!();
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SoloResultPage(
+              totalCards: widget.cards.length,
+              correctAnswers: correctAnswers,
+            ),
+          ),
+        );
+      }
+      return;
+    }
     setState(() {
       currentIndex += 1;
       final card = widget.cards[currentIndex];
@@ -594,7 +529,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                     Text(
                       'Carte ${currentIndex + 1}/${widget.cards.length}',
                       style: const TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: 'Inter',
                         fontSize: 16,
                         color: Colors.white70,
                       ),
@@ -679,7 +614,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                                 color: figBackground,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
-                                fontFamily: 'Helvetica',
+                                fontFamily: 'Inter',
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -744,7 +679,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                       const Text(
                         'Ton estimation',
                         style: TextStyle(
-                          fontFamily: 'Helvetica',
+                          fontFamily: 'Inter',
                           fontSize: 14,
                           color: Colors.white60,
                         ),
@@ -762,7 +697,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                         child: Text(
                           estimationValue.round().toString(),
                           style: const TextStyle(
-                            fontFamily: 'Helvetica',
+                            fontFamily: 'Inter',
                             fontSize: 34,
                             fontWeight: FontWeight.w900,
                             color: figCream,
@@ -833,7 +768,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
               child: const Text(
                 'Valider mon estimation',
                 style: TextStyle(
-                  fontFamily: 'Helvetica',
+                  fontFamily: 'Inter',
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -862,7 +797,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
       child: Text(
         text,
         style: const TextStyle(
-          fontFamily: 'Helvetica',
+          fontFamily: 'Inter',
           color: Colors.white60,
           fontWeight: FontWeight.w600,
         ),
@@ -884,7 +819,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
           Text(
             value,
             style: const TextStyle(
-              fontFamily: 'Helvetica',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               color: figCream,
             ),
@@ -913,21 +848,21 @@ class SoloResultPage extends StatelessWidget {
 
     if (score <= 4) {
       return (
-        'Rire, réfléchir, voir autrement.',
-        'Tu viens d’aller au bout des $totalCards cartes, avec $score bonnes réponses au passage.\nLe plus intéressant n’était peut-être pas le score.'
+        'Rire, r\u00e9fl\u00e9chir, voir autrement.',
+        'Tu viens d\u2019aller au bout des $totalCards cartes, avec $score bonnes r\u00e9ponses au passage.\nLe plus int\u00e9ressant n\u2019\u00e9tait peut-\u00eatre pas le score.'
       );
     }
 
     if (score <= 8) {
       return (
-        'Quelques idées reçues en moins.',
-        '$totalCards cartes plus tard, t’as mis juste sur $score.\nLe reste ? Disons que ça nourrit très bien la conversation.'
+        'Quelques id\u00e9es re\u00e7ues en moins.',
+        '$totalCards cartes plus tard, t\u2019as mis juste sur $score.\nLe reste ? Disons que \u00e7a nourrit tr\u00e8s bien la conversation.'
       );
     }
 
     return (
-      'T’en sais déjà un peu plus.',
-      'Tu viens de traverser $totalCards cartes, d’égratigner quelques idées reçues,\net d’en sortir avec $score/$totalCards.\nPas mal pour un sujet qu’on t’a rarement appris correctement.'
+      'T\u2019en sais d\u00e9j\u00e0 un peu plus.',
+      'Tu viens de traverser $totalCards cartes, d\u2019\u00e9gratigner quelques id\u00e9es re\u00e7ues,\net d\u2019en sortir avec $score/$totalCards.\nPas mal pour un sujet qu\u2019on t\u2019a rarement appris correctement.'
     );
   }
 
@@ -971,7 +906,7 @@ class SoloResultPage extends StatelessWidget {
                 Text(
                   result.$2,
                   style: const TextStyle(
-                    fontFamily: 'Helvetica',
+                    fontFamily: 'Inter',
                     fontSize: 17,
                     color: Colors.white70,
                     height: 1.45,
@@ -1001,7 +936,7 @@ class SoloResultPage extends StatelessWidget {
                     child: const Text(
                       'Rejouer',
                       style: TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -1031,7 +966,7 @@ class SoloResultPage extends StatelessWidget {
                     child: const Text(
                       'Retour accueil',
                       style: TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: 'Inter',
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -1102,7 +1037,7 @@ class AnswerButton extends StatelessWidget {
               child: Text(
                 text,
                 style: const TextStyle(
-                  fontFamily: 'Helvetica',
+                  fontFamily: 'Inter',
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   height: 1.2,
@@ -1146,17 +1081,17 @@ class _StartSessionCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 28),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 22, vertical: 28),
             child: Column(
               children: [
-                const Icon(
+                Icon(
                   Icons.auto_awesome_rounded,
                   color: figCream,
                   size: 28,
                 ),
-                const SizedBox(height: 12),
-                const Text(
+                SizedBox(height: 12),
+                Text(
                   'Commencer',
                   textAlign: TextAlign.center,
                   style: TextStyle(
@@ -1181,7 +1116,8 @@ class _QuizBackground extends StatelessWidget {
   const _QuizBackground({required this.child});
 
   static const Color figBackground = Color(0xFF231143);
-  static const Color figBackgroundDeep = Color(0xFF1A0D36);
+static const Color figBackgroundDeep = FigColors.backgroundDeep;
+
 
   @override
   Widget build(BuildContext context) {
@@ -1215,8 +1151,4 @@ class _QuizBackground extends StatelessWidget {
       ],
     );
   }
-}
-List<QuizCardData> getChallengeCards() {
-  final shuffled = List<QuizCardData>.from(demoCards)..shuffle();
-  return shuffled.take(5).toList();
 }

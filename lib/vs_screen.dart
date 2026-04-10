@@ -1,93 +1,23 @@
 import 'package:flutter/material.dart';
+import 'models/vs_game.dart';
+import 'data/demo_data.dart';
+import 'theme/fig_theme.dart';
 import 'challenge/challenge_create_screen.dart';
 import 'challenge/challenge_result_screen.dart';
-
-enum VsGameStatus {
-  myTurn,
-  opponentTurn,
-  recapReady,
-}
-
-class VsGamePreview {
-  final String name;
-  final VsGameStatus status;
-  final String challengeQuestion;
-  final String myAnswer;
-  final String opponentAnswer;
-  final int myScore;
-  final int opponentScore;
-
-  const VsGamePreview({
-    required this.name,
-    required this.status,
-    required this.challengeQuestion,
-    required this.myAnswer,
-    required this.opponentAnswer,
-    required this.myScore,
-    required this.opponentScore,
-  });
-}
 
 class VsScreen extends StatelessWidget {
   const VsScreen({super.key});
 
-  static const Color figBackground = Color(0xFF231143);
-  static const Color figCream = Color(0xFFE9DFC8);
-
-  static const List<VsGamePreview> demoGames = [
-    VsGamePreview(
-      name: 'Camille',
-      status: VsGameStatus.myTurn,
-      challengeQuestion:
-          'Quelle petite révélation t’a récemment aidé·e à kiffer davantage ta sexualité ?',
-      myAnswer: '',
-      opponentAnswer: '',
-      myScore: 0,
-      opponentScore: 0,
-    ),
-    VsGamePreview(
-      name: 'Sarah',
-      status: VsGameStatus.opponentTurn,
-      challengeQuestion:
-          'Raconte ton pire date ou le plan foireux le plus mythique de ta vie.',
-      myAnswer:
-          'J’ai raconté mon pire date en croyant être drôle, et finalement c’est surtout devenu un très bon filtre.',
-      opponentAnswer: '',
-      myScore: 5,
-      opponentScore: 0,
-    ),
-    VsGamePreview(
-      name: 'Léo',
-      status: VsGameStatus.recapReady,
-      challengeQuestion:
-          'Quelle “idée reçue” sur le plaisir t’a toujours donné envie de hurler “FAUX !” ?',
-      myAnswer:
-          'L’idée qu’il faudrait savoir instinctivement quoi faire. Comme si parler cassait l’ambiance.',
-      opponentAnswer:
-          'Que le plaisir féminin serait “plus compliqué”. Souvent, c’est juste qu’on l’écoute moins.',
-      myScore: 6,
-      opponentScore: 4,
-    ),
-    VsGamePreview(
-      name: 'Alex',
-      status: VsGameStatus.opponentTurn,
-      challengeQuestion:
-          'Quelle petite révélation t’a récemment aidé·e à kiffer davantage ta sexualité ?',
-      myAnswer:
-          'Comprendre que je pouvais arrêter de performer et commencer à ressentir.',
-      opponentAnswer: '',
-      myScore: 7,
-      opponentScore: 0,
-    ),
-  ];
+  static const Color figBackground = FigColors.background;
+  static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
     final actionableGames = demoGames
         .where(
           (game) =>
-              game.status == VsGameStatus.myTurn ||
-              game.status == VsGameStatus.recapReady,
+              game.status == VsGameStatus.creatorPlaying ||
+              game.status == VsGameStatus.recapAvailable,
         )
         .toList();
 
@@ -144,7 +74,7 @@ class VsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'Défi',
+                    'D\u00e9fi',
                     style: TextStyle(
                       fontFamily: 'Florisha',
                       fontSize: 38,
@@ -156,7 +86,7 @@ class VsScreen extends StatelessWidget {
                   const Text(
                     'Lance une partie et joue tout de suite.',
                     style: TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: 'Inter',
                       fontSize: 16,
                       color: Colors.white70,
                     ),
@@ -178,7 +108,7 @@ class VsScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _VsColumn(
-                            title: 'À toi',
+                            title: '\u00c0 toi',
                             items: actionableGames
                                 .map(
                                   (game) => _VsMiniCard(
@@ -219,9 +149,9 @@ class VsScreen extends StatelessWidget {
     );
   }
 
-  void _openGame(BuildContext context, VsGamePreview game) {
+  void _openGame(BuildContext context, VsGame game) {
     switch (game.status) {
-      case VsGameStatus.myTurn:
+      case VsGameStatus.creatorPlaying:
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -234,25 +164,28 @@ class VsScreen extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (_) => ChallengePendingScreen(
-              opponentName: game.name,
+              opponentName: game.opponentName ?? 'En attente\u2026',
+
               challengeQuestion: game.challengeQuestion,
             ),
           ),
         );
         break;
-      case VsGameStatus.recapReady:
+      case VsGameStatus.recapAvailable:
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => ChallengeResultScreen(
               challengeQuestion: game.challengeQuestion,
-              myAnswer: game.myAnswer,
-              opponentAnswer: game.opponentAnswer,
-              myScore: game.myScore,
+              myAnswer: game.creatorAnswer ?? '',
+              opponentAnswer: game.opponentAnswer ?? '',
+              myScore: game.creatorScore,
               opponentScore: game.opponentScore,
             ),
           ),
         );
+        break;
+      case VsGameStatus.completed:
         break;
     }
   }
@@ -267,7 +200,7 @@ class _VsColumn extends StatelessWidget {
     required this.items,
   });
 
-  static const Color figCream = Color(0xFFE9DFC8);
+  static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
@@ -299,7 +232,7 @@ class _VsColumn extends StatelessWidget {
                   child: const Text(
                     'Rien pour le moment',
                     style: TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: 'Inter',
                       color: Colors.white54,
                     ),
                   ),
@@ -316,7 +249,7 @@ class _VsColumn extends StatelessWidget {
 }
 
 class _VsMiniCard extends StatelessWidget {
-  final VsGamePreview game;
+  final VsGame game;
   final VoidCallback onTap;
 
   const _VsMiniCard({
@@ -324,33 +257,37 @@ class _VsMiniCard extends StatelessWidget {
     required this.onTap,
   });
 
-  static const Color figCream = Color(0xFFE9DFC8);
+  static const Color figCream = FigColors.cream;
 
   IconData get _icon {
     switch (game.status) {
-      case VsGameStatus.myTurn:
+      case VsGameStatus.creatorPlaying:
         return Icons.reply_rounded;
       case VsGameStatus.opponentTurn:
         return Icons.more_horiz_rounded;
-      case VsGameStatus.recapReady:
+      case VsGameStatus.recapAvailable:
         return Icons.visibility_outlined;
+      case VsGameStatus.completed:
+        return Icons.check_rounded;
     }
   }
 
   String get _label {
     switch (game.status) {
-      case VsGameStatus.myTurn:
-        return 'À toi de jouer';
+      case VsGameStatus.creatorPlaying:
+        return '\u00c0 toi de jouer';
       case VsGameStatus.opponentTurn:
-        return 'À l’autre de jouer';
-      case VsGameStatus.recapReady:
-        return 'Voir vos réponses';
+        return '\u00c0 ${game.opponentName} de jouer';
+      case VsGameStatus.recapAvailable:
+        return 'Voir le r\u00e9cap';
+      case VsGameStatus.completed:
+        return 'Termin\u00e9e';
     }
   }
 
   bool get _highlight {
-    return game.status == VsGameStatus.myTurn ||
-        game.status == VsGameStatus.recapReady;
+    return game.status == VsGameStatus.creatorPlaying ||
+        game.status == VsGameStatus.recapAvailable;
   }
 
   @override
@@ -380,9 +317,10 @@ class _VsMiniCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    game.name,
+                    game.opponentName ?? 'En attente\u2026',
+
                     style: const TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                       color: figCream,
                     ),
@@ -394,7 +332,7 @@ class _VsMiniCard extends StatelessWidget {
             Text(
               _label,
               style: TextStyle(
-                fontFamily: 'Helvetica',
+                fontFamily: 'Inter',
                 fontSize: 13,
                 fontWeight: _highlight ? FontWeight.w700 : FontWeight.w600,
                 color: _highlight ? figCream : Colors.white70,
@@ -413,7 +351,7 @@ class _PrimaryVsCard extends StatelessWidget {
 
   const _PrimaryVsCard({required this.onTap});
 
-  static const Color figCream = Color(0xFFE9DFC8);
+  static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
@@ -431,18 +369,18 @@ class _PrimaryVsCard extends StatelessWidget {
               color: Colors.white.withOpacity(0.08),
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
+          child: const Padding(
+            padding: EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
+                Icon(
                   Icons.compare_arrows_rounded,
                   color: figCream,
                   size: 26,
                 ),
-                const SizedBox(height: 18),
-                const Text(
+                SizedBox(height: 18),
+                Text(
                   'Nouvelle partie',
                   style: TextStyle(
                     fontFamily: 'Florisha',
@@ -451,33 +389,14 @@ class _PrimaryVsCard extends StatelessWidget {
                     color: figCream,
                   ),
                 ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Choisis un défi, invite quelqu’un et joue.',
+                SizedBox(height: 6),
+                Text(
+                  'Choisis un d\u00e9fi, invite quelqu\u2019un et joue.',
                   style: TextStyle(
-                    fontFamily: 'Helvetica',
+                    fontFamily: 'Inter',
                     fontSize: 14,
                     color: Colors.white70,
                     height: 1.3,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: figCream,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text(
-                    'Commencer',
-                    style: TextStyle(
-                      fontFamily: 'Helvetica',
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF231143),
-                    ),
                   ),
                 ),
               ],
@@ -499,7 +418,7 @@ class ChallengePendingScreen extends StatelessWidget {
     required this.challengeQuestion,
   });
 
-  static const Color figCream = Color(0xFFE9DFC8);
+  static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
@@ -507,13 +426,13 @@ class ChallengePendingScreen extends StatelessWidget {
       body: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xFF231143),
-                  Color(0xFF1A0D36),
+                  FigColors.background,
+                  FigColors.backgroundDeep,
                 ],
               ),
             ),
@@ -543,7 +462,7 @@ class ChallengePendingScreen extends StatelessWidget {
                   ),
                   const Spacer(),
                   const Text(
-                    'À l’autre de jouer.',
+                    '\u00c0 l\u2019autre de jouer.',
                     style: TextStyle(
                       fontFamily: 'Florisha',
                       fontSize: 38,
@@ -554,9 +473,9 @@ class ChallengePendingScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    '$opponentName n’a pas encore terminé son tour.\nLa partie reste là, en attente.',
+                    '$opponentName n\u2019a pas encore termin\u00e9 son tour.\nLa partie reste l\u00e0, en attente.',
                     style: const TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: 'Inter',
                       fontSize: 17,
                       color: Colors.white70,
                       height: 1.45,
@@ -576,7 +495,7 @@ class ChallengePendingScreen extends StatelessWidget {
                     child: Text(
                       challengeQuestion,
                       style: const TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: 'Inter',
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: figCream,
@@ -591,7 +510,7 @@ class ChallengePendingScreen extends StatelessWidget {
                       onPressed: () => Navigator.pop(context),
                       style: FilledButton.styleFrom(
                         backgroundColor: figCream,
-                        foregroundColor: const Color(0xFF231143),
+                        foregroundColor: FigColors.background,
                         padding: const EdgeInsets.symmetric(vertical: 20),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(22),
@@ -600,7 +519,7 @@ class ChallengePendingScreen extends StatelessWidget {
                       child: const Text(
                         'Retour',
                         style: TextStyle(
-                          fontFamily: 'Helvetica',
+                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
                         ),
                       ),

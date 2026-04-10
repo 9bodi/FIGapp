@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'vs_screen.dart';
 import 'quiz/quiz_screen.dart';
+import 'theme/fig_theme.dart';
+
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  static const Color figBackground = Color(0xFF231143);
-  static const Color figCream = Color(0xFFE9DFC8);
+  static const Color figBackground = FigColors.background;
+static const Color figCream = FigColors.cream;
+
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +123,7 @@ class HomeScreen extends StatelessWidget {
                       child: const Text(
                         "Inviter quelqu’un",
                         style: TextStyle(
-                          fontFamily: 'Helvetica',
+                          fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -149,7 +152,7 @@ class _FigCard extends StatelessWidget {
     required this.onTap,
   });
 
-  static const Color figCream = Color(0xFFE9DFC8);
+static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +204,7 @@ class _FigCard extends StatelessWidget {
                 Text(
                   subtitle,
                   style: const TextStyle(
-                    fontFamily: 'Helvetica',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     color: Colors.white70,
                   ),
@@ -224,7 +227,7 @@ class _GameCard extends StatelessWidget {
     required this.subtitle,
   });
 
-  static const Color figCream = Color(0xFFE9DFC8);
+static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +260,7 @@ class _GameCard extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontFamily: 'Helvetica',
+                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w800,
                     color: figCream,
                   ),
@@ -266,7 +269,7 @@ class _GameCard extends StatelessWidget {
                 Text(
                   subtitle,
                   style: const TextStyle(
-                    fontFamily: 'Helvetica',
+                    fontFamily: 'Inter',
                     color: Colors.white70,
                   ),
                 ),

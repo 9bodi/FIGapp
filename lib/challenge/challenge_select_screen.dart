@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import '../quiz/quiz_screen.dart';
+import '../models/quiz_card.dart';
+import '../data/demo_data.dart';
+import '../theme/fig_theme.dart';
+
+
 
 class ChallengeSelectScreen extends StatefulWidget {
   const ChallengeSelectScreen({super.key});
@@ -9,8 +14,11 @@ class ChallengeSelectScreen extends StatefulWidget {
 }
 
 class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
-  static const Color figBackground = Color(0xFF231143);
-  static const Color figCream = Color(0xFFE9DFC8);
+static const Color figBackground = FigColors.background;
+static const Color figCream = FigColors.cream;
+
+
+
 
   static const List<String> challengeCards = [
     'Quelle “idée reçue” sur le plaisir t’a toujours donné envie de hurler “FAUX !” ?',
@@ -105,7 +113,7 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
                         ? 'Ton adversaire répondra au même défi, puis vous enchaînerez sur les mêmes questions.'
                         : 'Fais défiler les cartes et garde celle qui te donne le plus envie de répondre.',
                     style: const TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: 'Inter',
                       fontSize: 16,
                       color: Colors.white70,
                       height: 1.4,
@@ -198,7 +206,7 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
                           child: const Text(
                             'Texte',
                             style: TextStyle(
-                              fontFamily: 'Helvetica',
+                              fontFamily: 'Inter',
                               fontWeight: FontWeight.w700,
                               color: figBackground,
                             ),
@@ -228,7 +236,7 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
                               Text(
                                 'Vocal',
                                 style: TextStyle(
-                                  fontFamily: 'Helvetica',
+                                  fontFamily: 'Inter',
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white38,
                                 ),
@@ -246,7 +254,7 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
                         maxLines: null,
                         expands: true,
                         style: const TextStyle(
-                          fontFamily: 'Helvetica',
+                          fontFamily: 'Inter',
                           fontSize: 17,
                           color: figCream,
                           height: 1.4,
@@ -254,7 +262,7 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
                         decoration: InputDecoration(
                           hintText: 'Balance ta réponse ici…',
                           hintStyle: const TextStyle(
-                            fontFamily: 'Helvetica',
+                            fontFamily: 'Inter',
                             color: Colors.white38,
                           ),
                           filled: true,
@@ -311,7 +319,7 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
                         child: const Text(
                           'Continuer',
                           style: TextStyle(
-                            fontFamily: 'Helvetica',
+                            fontFamily: 'Inter',
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -341,7 +349,8 @@ class _ChallengeCarouselCard extends StatelessWidget {
     required this.onTap,
   });
 
-  static const Color figCream = Color(0xFFE9DFC8);
+static const Color figCream = FigColors.cream;
+
 
   @override
   Widget build(BuildContext context) {
@@ -387,7 +396,7 @@ class _ChallengeCarouselCard extends StatelessWidget {
                   child: Text(
                     text,
                     style: TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: 'Inter',
                       fontSize: compact ? 15 : 20,
                       fontWeight: FontWeight.w700,
                       color: figCream,
@@ -400,7 +409,7 @@ class _ChallengeCarouselCard extends StatelessWidget {
                   Text(
                     selected ? 'Carte sélectionnée' : 'Fais glisser',
                     style: TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: 'Inter',
                       fontSize: 13,
                       color: selected ? figCream : Colors.white54,
                     ),
@@ -420,7 +429,8 @@ class _RespondCtaCard extends StatelessWidget {
 
   const _RespondCtaCard({required this.onTap});
 
-  static const Color figCream = Color(0xFFE9DFC8);
+static const Color figCream = FigColors.cream;
+
 
   @override
   Widget build(BuildContext context) {
@@ -451,7 +461,7 @@ class _RespondCtaCard extends StatelessWidget {
                 Text(
                   'Répondre à cette carte',
                   style: TextStyle(
-                    fontFamily: 'Helvetica',
+                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
                     color: figCream,
                   ),

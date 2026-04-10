@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'splash_screen.dart';
+import 'theme/fig_theme.dart';
+
 
 void main() {
   runApp(const FigApp());
@@ -10,7 +12,8 @@ class FigApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const figBackground = Color(0xFF231143);
+    const figBackground = FigColors.background;
+
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -22,7 +25,7 @@ class FigApp extends StatelessWidget {
           seedColor: const Color(0xFFE9DFC8),
           brightness: Brightness.dark,
         ),
-        fontFamily: 'Helvetica',
+        fontFamily: 'Inter',
         useMaterial3: true,
       ),
       home: const SplashScreen(),
