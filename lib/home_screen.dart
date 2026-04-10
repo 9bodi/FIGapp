@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'theme/fig_theme.dart';
+import 'services/game_service.dart';
 import 'vs_screen.dart';
 import 'quiz/quiz_screen.dart';
-import 'theme/fig_theme.dart';
-
+import 'challenge/challenge_create_screen.dart';
+import 'screens/join_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   static const Color figBackground = FigColors.background;
-static const Color figCream = FigColors.cream;
-
+  static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
@@ -17,38 +18,31 @@ static const Color figCream = FigColors.cream;
       backgroundColor: figBackground,
       body: Stack(
         children: [
-          // 🔥 LOGO EN FOND
           Positioned(
-  bottom: -120,
-  left: -60,
-  right: -60,
-  child: Opacity(
-    opacity: 0.05,
-    child: Image.asset(
-      'assets/logo_symbol.png',
-      fit: BoxFit.cover,
-    ),
-  ),
-),
-
-          // CONTENU
+            bottom: -120,
+            left: -60,
+            right: -60,
+            child: Opacity(
+              opacity: 0.05,
+              child: Image.asset(
+                'assets/logo_symbol.png',
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🔝 LOGO PRINCIPAL
                   Center(
                     child: Image.asset(
                       'assets/logo_full.png',
                       width: 140,
                     ),
                   ),
-
                   const SizedBox(height: 36),
-
-                  // 🧩 SOLO / VS
                   Row(
                     children: [
                       Expanded(
@@ -57,39 +51,36 @@ static const Color figCream = FigColors.cream;
                           subtitle: "Quizz",
                           icon: Icons.auto_awesome_rounded,
                           onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => const SoloIntroPage(),
-    ),
-  );
-},
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SoloIntroPage(),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: _FigCard(
-                          title: "Défier",
+                          title: "D\u00e9fier",
                           subtitle: "Un.e ami.e",
                           icon: Icons.compare_arrows_rounded,
                           onTap: () {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => const VsScreen(),
-    ),
-  );
-},
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const VsScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 32),
-
-                  // 🎯 A TOI DE JOUER
                   const Text(
-                    "À toi de jouer",
+                    "\u00c0 toi de jouer",
                     style: TextStyle(
                       fontFamily: 'Florisha',
                       fontSize: 22,
@@ -97,31 +88,98 @@ static const Color figCream = FigColors.cream;
                       color: figCream,
                     ),
                   ),
-
                   const SizedBox(height: 12),
+                  Expanded(
+                    child: StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: GameService().watchMyGames(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: figCream,
+                            ),
+                          );
+                        }
 
-                  const _GameCard(
-                    title: "Camille",
-                    subtitle: "T’attend pour continuer",
+                        final games = snapshot.data ?? [];
+
+                        if (games.isEmpty) {
+                          return const _EmptyGamesCard();
+                        }
+
+                        return ListView.separated(
+                          itemCount: games.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 10),
+                          itemBuilder: (_, index) {
+                            final game = games[index];
+                            return _GameCard(
+                              title: game['opponentName'] ??
+                                  'En attente\u2026',
+                              subtitle: _statusLabel(game),
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
-
-                  const Spacer(),
-
-                  // 🚀 CTA INVITER
+                  const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const ChallengeCreateScreen(),
+                          ),
+                        );
+                      },
                       style: FilledButton.styleFrom(
                         backgroundColor: figCream,
                         foregroundColor: figBackground,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 18),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
                       child: const Text(
-                        "Inviter quelqu’un",
+                        "Inviter quelqu'un",
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const JoinScreen(),
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: FigColors.cream,
+                        side: BorderSide(
+                          color: FigColors.cream.withOpacity(0.3),
+                        ),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text(
+                        "Rejoindre une partie",
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
@@ -131,6 +189,67 @@ static const Color figCream = FigColors.cream;
                   ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _statusLabel(Map<String, dynamic> game) {
+    switch (game['status']) {
+      case 'creatorPlaying':
+        return '\u00c0 toi de jouer';
+      case 'opponentTurn':
+        return 'En attente de l\u2019autre';
+      case 'recapAvailable':
+        return 'R\u00e9cap disponible';
+      case 'completed':
+        return 'Termin\u00e9e';
+      default:
+        return '';
+    }
+  }
+}
+
+class _EmptyGamesCard extends StatelessWidget {
+  const _EmptyGamesCard();
+
+  static const Color figCream = FigColors.cream;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.sports_esports_outlined,
+            color: Colors.white38,
+            size: 32,
+          ),
+          SizedBox(height: 12),
+          Text(
+            'Aucune partie en cours',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w700,
+              color: Colors.white54,
+            ),
+          ),
+          SizedBox(height: 6),
+          Text(
+            'Lance un d\u00e9fi pour commencer !',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              color: Colors.white38,
             ),
           ),
         ],
@@ -152,7 +271,7 @@ class _FigCard extends StatelessWidget {
     required this.onTap,
   });
 
-static const Color figCream = FigColors.cream;
+  static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +346,7 @@ class _GameCard extends StatelessWidget {
     required this.subtitle,
   });
 
-static const Color figCream = FigColors.cream;
+  static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
@@ -248,7 +367,7 @@ static const Color figCream = FigColors.cream;
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
-              Icons.reply_rounded, // 👈 icône reprise
+              Icons.reply_rounded,
               color: figCream,
             ),
           ),

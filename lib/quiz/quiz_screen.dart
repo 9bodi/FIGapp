@@ -4,12 +4,41 @@ import '../challenge/challenge_result_screen.dart';
 import '../models/quiz_card.dart';
 import '../data/demo_data.dart';
 import '../theme/fig_theme.dart';
+import '../services/quiz_service.dart';
+import '../services/game_service.dart';
 
-
-class SoloIntroPage extends StatelessWidget {
+class SoloIntroPage extends StatefulWidget {
   const SoloIntroPage({super.key});
 
-  static const Color figCream = Color(0xFFE9DFC8);
+  @override
+  State<SoloIntroPage> createState() => _SoloIntroPageState();
+}
+
+class _SoloIntroPageState extends State<SoloIntroPage> {
+  static const Color figCream = FigColors.cream;
+
+  List<QuizCardData>? _cards;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCards();
+  }
+
+  Future<void> _loadCards() async {
+    try {
+      final cards = await QuizService().getAllCards();
+      if (!mounted) return;
+      setState(() {
+        _cards = cards;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _cards = demoCards;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +67,11 @@ class SoloIntroPage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 18),
-                const Text(
-                  '10 cartes pour questionner, comprendre\net voir autrement.',
-                  style: TextStyle(
+                Text(
+                  _cards != null
+                      ? '${_cards!.length} cartes pour questionner, comprendre\net voir autrement.'
+                      : 'Chargement\u2026',
+                  style: const TextStyle(
                     fontFamily: 'Inter',
                     fontSize: 17,
                     color: Colors.white70,
@@ -48,22 +79,28 @@ class SoloIntroPage extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                Center(
-                  child: SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.6,
-                    child: _StartSessionCard(
-                      onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const SoloQuizPage(cards: demoCards),
-                          ),
-                        );
-                      },
+                if (_cards != null)
+                  Center(
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.6,
+                      child: _StartSessionCard(
+                        onTap: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SoloQuizPage(cards: _cards!),
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
+                if (_cards == null)
+                  const Center(
+                    child: CircularProgressIndicator(
+                      color: FigColors.cream,
+                    ),
+                  ),
                 const Spacer(),
               ],
             ),
@@ -77,216 +114,17 @@ class SoloIntroPage extends StatelessWidget {
 class SoloQuizPage extends StatefulWidget {
   final List<QuizCardData> cards;
   final VoidCallback? onFinished;
+  final Future<void> Function(int score)? onComplete;
 
   const SoloQuizPage({
     super.key,
     required this.cards,
     this.onFinished,
+    this.onComplete,
   });
 
   @override
   State<SoloQuizPage> createState() => _SoloQuizPageState();
-}
-
-class ChallengeQuizPage extends StatefulWidget {
-  final List<QuizCardData> cards;
-  final String challengeAnswer;
-
-  const ChallengeQuizPage({
-    super.key,
-    required this.cards,
-    required this.challengeAnswer,
-  });
-
-  @override
-  State<ChallengeQuizPage> createState() => _ChallengeQuizPageState();
-}
-
-class _ChallengeQuizPageState extends State<ChallengeQuizPage> {
-  @override
-  Widget build(BuildContext context) {
-    return SoloQuizPage(
-      cards: widget.cards,
-      onFinished: () {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ChallengeWaitingPage(
-              challengeAnswer: widget.challengeAnswer,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class ChallengeWaitingPage extends StatelessWidget {
-  final String challengeAnswer;
-
-  const ChallengeWaitingPage({
-    super.key,
-    required this.challengeAnswer,
-  });
-
-  static const Color figCream = Color(0xFFE9DFC8);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _QuizBackground(
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const HomeScreen(),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                  icon: const Icon(Icons.close_rounded),
-                  color: figCream,
-                ),
-                const Spacer(),
-                const Text(
-                  '\u00c0 l\u2019autre de jouer.',
-                  style: TextStyle(
-                    fontFamily: 'Florisha',
-                    fontSize: 38,
-                    fontWeight: FontWeight.w700,
-                    height: 1.05,
-                    color: figCream,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'Ton d\u00e9fi est lanc\u00e9, ta r\u00e9ponse est enregistr\u00e9e, et ta s\u00e9rie est termin\u00e9e.\n\u00c0 l\u2019autre de jouer maintenant.',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 17,
-                    color: Colors.white70,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.08),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Ta r\u00e9ponse',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white60,
-                          letterSpacing: 0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        challengeAnswer,
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: figCream,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ChallengeResultScreen(
-                            challengeQuestion:
-                                'Quelle petite r\u00e9v\u00e9lation t\u2019a r\u00e9cemment aid\u00e9\u00b7e \u00e0 kiffer davantage ta sexualit\u00e9 ?',
-                            myAnswer: challengeAnswer,
-                            opponentAnswer:
-                                'J\u2019ai compris r\u00e9cemment que je pouvais arr\u00eater de vouloir "bien faire" et commencer \u00e0 me demander ce qui me faisait vraiment du bien.',
-                            myScore: 6,
-                            opponentScore: 4,
-                          ),
-                        ),
-                      );
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: figCream,
-                      foregroundColor: const Color(0xFF231143),
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                    ),
-                    child: const Text(
-                      'Voir un recap test',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const HomeScreen(),
-                        ),
-                        (route) => false,
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: figCream,
-                      side: const BorderSide(color: Color(0x33E9DFC8)),
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                    ),
-                    child: const Text(
-                      'Retour accueil',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _SoloQuizPageState extends State<SoloQuizPage> {
@@ -480,23 +318,32 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
     return isCorrect ? 'Bien vu' : 'Pi\u00e8ge classique';
   }
 
-  void _goNext() {
+  Future<void> _goNext() async {
     if (currentIndex == widget.cards.length - 1) {
+      // Appeler onComplete si fourni (ex: OpponentQuizPage)
+      if (widget.onComplete != null) {
+        await widget.onComplete!(correctAnswers);
+      }
+
+      // Appeler onFinished si fourni (ex: ChallengeQuizPage)
       if (widget.onFinished != null) {
         widget.onFinished!();
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => SoloResultPage(
-              totalCards: widget.cards.length,
-              correctAnswers: correctAnswers,
-            ),
-          ),
-        );
+        return;
       }
+
+      // Par défaut : aller au résultat solo
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SoloResultPage(
+            totalCards: widget.cards.length,
+            correctAnswers: correctAnswers,
+          ),
+        ),
+      );
       return;
     }
+
     setState(() {
       currentIndex += 1;
       final card = widget.cards[currentIndex];
@@ -564,12 +411,10 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                         parent: animation,
                         curve: Curves.easeOutCubic,
                       );
-
                       final slide = Tween<Offset>(
                         begin: const Offset(0, 0.02),
                         end: Offset.zero,
                       ).animate(fade);
-
                       return FadeTransition(
                         opacity: fade,
                         child: SlideTransition(
@@ -830,6 +675,199 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
   }
 }
 
+class ChallengeQuizPage extends StatefulWidget {
+  final List<QuizCardData> cards;
+  final String challengeAnswer;
+  final String? gameId;
+
+  const ChallengeQuizPage({
+    super.key,
+    required this.cards,
+    required this.challengeAnswer,
+    this.gameId,
+  });
+
+  @override
+  State<ChallengeQuizPage> createState() => _ChallengeQuizPageState();
+}
+
+class _ChallengeQuizPageState extends State<ChallengeQuizPage> {
+  @override
+  Widget build(BuildContext context) {
+    return SoloQuizPage(
+      cards: widget.cards,
+      onFinished: () {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChallengeWaitingPage(
+              challengeAnswer: widget.challengeAnswer,
+              gameId: widget.gameId,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class ChallengeWaitingPage extends StatefulWidget {
+  final String challengeAnswer;
+  final String? gameId;
+
+  const ChallengeWaitingPage({
+    super.key,
+    required this.challengeAnswer,
+    this.gameId,
+  });
+
+  @override
+  State<ChallengeWaitingPage> createState() => _ChallengeWaitingPageState();
+}
+
+class _ChallengeWaitingPageState extends State<ChallengeWaitingPage> {
+  static const Color figCream = FigColors.cream;
+
+  @override
+  void initState() {
+    super.initState();
+    _submitTurn();
+  }
+
+  Future<void> _submitTurn() async {
+    if (widget.gameId == null) return;
+    try {
+      await GameService().submitCreatorTurn(
+        gameId: widget.gameId!,
+        answer: widget.challengeAnswer,
+        score: 0,
+      );
+    } catch (e) {
+      debugPrint('Erreur soumission tour: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _QuizBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                IconButton(
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const HomeScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  },
+                  icon: const Icon(Icons.close_rounded),
+                  color: figCream,
+                ),
+                const Spacer(),
+                const Text(
+                  '\u00c0 l\u2019autre de jouer.',
+                  style: TextStyle(
+                    fontFamily: 'Florisha',
+                    fontSize: 38,
+                    fontWeight: FontWeight.w700,
+                    height: 1.05,
+                    color: figCream,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Ton d\u00e9fi est lanc\u00e9, ta r\u00e9ponse est enregistr\u00e9e, et ta s\u00e9rie est termin\u00e9e.\n\u00c0 l\u2019autre de jouer maintenant.',
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 17,
+                    color: Colors.white70,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 28),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Ta r\u00e9ponse',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white60,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        widget.challengeAnswer,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: figCream,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const HomeScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: figCream,
+                      foregroundColor: const Color(0xFF231143),
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                    ),
+                    child: const Text(
+                      'Retour accueil',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class SoloResultPage extends StatelessWidget {
   final int totalCards;
   final int correctAnswers;
@@ -920,7 +958,7 @@ class SoloResultPage extends StatelessWidget {
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const SoloQuizPage(cards: demoCards),
+                          builder: (_) => const SoloIntroPage(),
                         ),
                         (route) => false,
                       );
@@ -1116,8 +1154,7 @@ class _QuizBackground extends StatelessWidget {
   const _QuizBackground({required this.child});
 
   static const Color figBackground = Color(0xFF231143);
-static const Color figBackgroundDeep = FigColors.backgroundDeep;
-
+  static const Color figBackgroundDeep = FigColors.backgroundDeep;
 
   @override
   Widget build(BuildContext context) {

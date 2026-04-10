@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
 import 'theme/fig_theme.dart';
-
+import 'services/auth_service.dart';
+import 'screens/name_screen.dart';
+import 'home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,7 +13,6 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   static const Color figBackground = FigColors.background;
-
 
   bool _started = false;
   bool _showFullLogo = false;
@@ -46,11 +46,15 @@ class _SplashScreenState extends State<SplashScreen> {
 
     await Future.delayed(const Duration(milliseconds: 350));
 
+    // Vérifier si l'utilisateur a un nom
+    final hasName = await AuthService().hasDisplayName();
+    final destination = hasName ? const HomeScreen() : const NameScreen();
+
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (_, __, ___) => const HomeScreen(),
+        pageBuilder: (_, __, ___) => destination,
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(
             opacity: animation,

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "269507769785",
+    "project_id": "figapp-b53cc",
+    "storage_bucket": "figapp-b53cc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:269507769785:android:f0c7af1056d1a1f85eb268",
+        "android_client_info": {
+          "package_name": "com.example.figapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUnsXxxd9-_YB75n0YKFDjeOp2TrxDp00"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

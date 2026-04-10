@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import '../theme/fig_theme.dart';
+import '../services/game_service.dart';
 import 'challenge_select_screen.dart';
 
 class ChallengeCreateScreen extends StatefulWidget {
@@ -14,25 +15,75 @@ class _ChallengeCreateScreenState extends State<ChallengeCreateScreen> {
   static const Color figBackground = FigColors.background;
   static const Color figCream = FigColors.cream;
 
+  final GameService _gameService = GameService();
+
   bool _inviteSent = false;
+  bool _creating = false;
+  String? _gameId;
+  String? _inviteCode;
 
-  static const String _inviteLink = 'https://figapp.link/invite/demo123';
+  Future<void> _createAndShare() async {
+    setState(() {
+      _creating = true;
+    });
 
-  Future<void> _shareInvite() async {
+    try {
+      // Créer la partie dans Firestore
+      final gameId = await _gameService.createGame(
+        challengeQuestion: '', // sera mis à jour quand on choisit le défi
+      );
+
+      // Récupérer l'invite code
+      final inviteCode = gameId.substring(0, 8);
+      final inviteLink = 'https://figapp.link/invite/$inviteCode';
+
+      // Partager
+      await SharePlus.instance.share(
+        ShareParams(
+          text: 'Je te d\u00e9fie sur FIG ! Clique ici pour jouer : $inviteLink',
+        ),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _gameId = gameId;
+        _inviteCode = inviteCode;
+        _inviteSent = true;
+        _creating = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _creating = false;
+      });
+    }
+  }
+
+  Future<void> _reshare() async {
+    if (_inviteCode == null) return;
+    final inviteLink = 'https://figapp.link/invite/$_inviteCode';
+
     await SharePlus.instance.share(
       ShareParams(
-        text: 'Je te d\u00e9fie sur FIG ! Clique ici pour jouer : $_inviteLink',
+        text: 'Je te d\u00e9fie sur FIG ! Clique ici pour jouer : $inviteLink',
       ),
     );
+  }
 
+  Future<void> _cancelGame() async {
+    if (_gameId != null) {
+      await _gameService.cancelGame(gameId: _gameId!);
+    }
     if (!mounted) return;
-    setState(() {
-      _inviteSent = true;
-    });
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final inviteLink = _inviteCode != null
+        ? 'https://figapp.link/invite/$_inviteCode'
+        : '';
+
     return Scaffold(
       body: Stack(
         children: [
@@ -142,10 +193,10 @@ class _ChallengeCreateScreenState extends State<ChallengeCreateScreen> {
                             ),
                             child: Row(
                               children: [
-                                const Expanded(
+                                Expanded(
                                   child: Text(
-                                    _inviteLink,
-                                    style: TextStyle(
+                                    inviteLink,
+                                    style: const TextStyle(
                                       fontFamily: 'Inter',
                                       fontSize: 13,
                                       color: Colors.white54,
@@ -155,7 +206,7 @@ class _ChallengeCreateScreenState extends State<ChallengeCreateScreen> {
                                 ),
                                 const SizedBox(width: 10),
                                 GestureDetector(
-                                  onTap: _shareInvite,
+                                  onTap: _reshare,
                                   child: const Icon(
                                     Icons.share_rounded,
                                     color: figCream,
@@ -169,123 +220,131 @@ class _ChallengeCreateScreenState extends State<ChallengeCreateScreen> {
                       ),
                     ),
                   const Spacer(),
-SizedBox(
-  width: double.infinity,
-  child: FilledButton(
-    onPressed: _inviteSent
-        ? () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const ChallengeSelectScreen(),
-              ),
-            );
-          }
-        : _shareInvite,
-    style: FilledButton.styleFrom(
-      backgroundColor: figCream,
-      foregroundColor: figBackground,
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(22),
-      ),
-    ),
-    child: Text(
-      _inviteSent
-          ? 'Choisir mon d\u00e9fi'
-          : 'Partager l\u2019invitation',
-      style: const TextStyle(
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w700,
-      ),
-    ),
-  ),
-),
-const SizedBox(height: 12),
-SizedBox(
-  width: double.infinity,
-  child: TextButton(
-    onPressed: _inviteSent
-        ? () {
-            showDialog(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                backgroundColor: FigColors.background,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                title: const Text(
-                  'Annuler la partie ?',
-                  style: TextStyle(
-                    fontFamily: 'Florisha',
-                    fontWeight: FontWeight.w700,
-                    color: figCream,
-                  ),
-                ),
-                content: const Text(
-                  'Le lien envoy\u00e9 ne fonctionnera plus et la partie sera supprim\u00e9e.',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    color: Colors.white70,
-                    height: 1.4,
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: const Text(
-                      'Non, garder',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white54,
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _creating
+                          ? null
+                          : _inviteSent
+                              ? () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          ChallengeSelectScreen(
+                                        gameId: _gameId,
+                                      ),
+                                    ),
+                                  );
+                                }
+                              : _createAndShare,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: figCream,
+                        foregroundColor: figBackground,
+                        disabledBackgroundColor:
+                            Colors.white.withOpacity(0.08),
+                        disabledForegroundColor: Colors.white38,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                      ),
+                      child: Text(
+                        _creating
+                            ? 'Cr\u00e9ation\u2026'
+                            : _inviteSent
+                                ? 'Choisir mon d\u00e9fi'
+                                : 'Partager l\u2019invitation',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      Navigator.pop(context);
-                      // TODO: backend → invalider le lien + supprimer la partie
-                    },
-                    child: const Text(
-                      'Oui, annuler',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFFE57373),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: _inviteSent
+                          ? () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  backgroundColor: FigColors.background,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(22),
+                                  ),
+                                  title: const Text(
+                                    'Annuler la partie ?',
+                                    style: TextStyle(
+                                      fontFamily: 'Florisha',
+                                      fontWeight: FontWeight.w700,
+                                      color: figCream,
+                                    ),
+                                  ),
+                                  content: const Text(
+                                    'Le lien envoy\u00e9 ne fonctionnera plus et la partie sera supprim\u00e9e.',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      color: Colors.white70,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx),
+                                      child: const Text(
+                                        'Non, garder',
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white54,
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(ctx);
+                                        _cancelGame();
+                                      },
+                                      child: const Text(
+                                        'Oui, annuler',
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFFE57373),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          : () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ChallengeSelectScreen(),
+                                ),
+                              );
+                            },
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white54,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: Text(
+                        _inviteSent
+                            ? 'Annuler la partie'
+                            : 'Passer pour l\u2019instant',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ],
-              ),
-            );
-          }
-        : () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const ChallengeSelectScreen(),
-              ),
-            );
-          },
-    style: TextButton.styleFrom(
-      foregroundColor: Colors.white54,
-      padding: const EdgeInsets.symmetric(vertical: 16),
-    ),
-    child: Text(
-      _inviteSent
-          ? 'Annuler la partie'
-          : 'Passer pour l\u2019instant',
-      style: const TextStyle(
-        fontFamily: 'Inter',
-        fontWeight: FontWeight.w600,
-      ),
-    ),
-  ),
-),
-
-
                 ],
               ),
             ),

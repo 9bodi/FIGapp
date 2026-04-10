@@ -1,30 +1,27 @@
 import 'package:flutter/material.dart';
-import '../quiz/quiz_screen.dart';
 import '../models/quiz_card.dart';
 import '../data/demo_data.dart';
+import '../services/quiz_service.dart';
 import '../theme/fig_theme.dart';
-
+import '../quiz/quiz_screen.dart';
+import '../services/game_service.dart';
 
 
 class ChallengeSelectScreen extends StatefulWidget {
-  const ChallengeSelectScreen({super.key});
+  final String? gameId;
+
+  const ChallengeSelectScreen({super.key, this.gameId});
 
   @override
   State<ChallengeSelectScreen> createState() => _ChallengeSelectScreenState();
 }
 
+
 class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
-static const Color figBackground = FigColors.background;
-static const Color figCream = FigColors.cream;
+  static const Color figBackground = FigColors.background;
+  static const Color figCream = FigColors.cream;
 
-
-
-
-  static const List<String> challengeCards = [
-    'Quelle “idée reçue” sur le plaisir t’a toujours donné envie de hurler “FAUX !” ?',
-    'Raconte ton pire date ou le plan foireux le plus mythique de ta vie.',
-    'Quelle petite révélation t’a récemment aidé·e à kiffer davantage ta sexualité ?',
-  ];
+  final QuizService _quizService = QuizService();
 
   late final PageController _pageController;
   final TextEditingController _textController = TextEditingController();
@@ -32,10 +29,36 @@ static const Color figCream = FigColors.cream;
   int selectedIndex = 0;
   bool showAnswerArea = false;
 
+  List<String> _prompts = [];
+  List<QuizCardData> _quizCards = [];
+  bool _loading = true;
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController(viewportFraction: 0.86);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final prompts = await _quizService.getChallengePrompts();
+      final cards = await _quizService.getChallengeCards();
+      if (!mounted) return;
+      setState(() {
+        _prompts = prompts;
+        _quizCards = cards;
+        _loading = false;
+      });
+    } catch (e) {
+      // Fallback sur les données locales si Firebase échoue
+      if (!mounted) return;
+      setState(() {
+        _prompts = challengeCards;
+        _quizCards = getChallengeCards();
+        _loading = false;
+      });
+    }
   }
 
   @override
@@ -47,13 +70,35 @@ static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                FigColors.background,
+                FigColors.backgroundDeep,
+              ],
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(
+              color: FigColors.cream,
+            ),
+          ),
+        ),
+      );
+    }
+
     final canContinue = _textController.text.trim().isNotEmpty;
 
     return Scaffold(
       body: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -98,7 +143,7 @@ static const Color figCream = FigColors.cream;
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    showAnswerArea ? 'À toi de répondre' : 'Choisis un défi',
+                    showAnswerArea ? '\u00c0 toi de r\u00e9pondre' : 'Choisis un d\u00e9fi',
                     style: const TextStyle(
                       fontFamily: 'Florisha',
                       fontSize: 36,
@@ -110,8 +155,8 @@ static const Color figCream = FigColors.cream;
                   const SizedBox(height: 12),
                   Text(
                     showAnswerArea
-                        ? 'Ton adversaire répondra au même défi, puis vous enchaînerez sur les mêmes questions.'
-                        : 'Fais défiler les cartes et garde celle qui te donne le plus envie de répondre.',
+                        ? 'Ton adversaire r\u00e9pondra au m\u00eame d\u00e9fi, puis vous encha\u00eenerez sur les m\u00eames questions.'
+                        : 'Fais d\u00e9filer les cartes et garde celle qui te donne le plus envie de r\u00e9pondre.',
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 16,
@@ -120,62 +165,59 @@ static const Color figCream = FigColors.cream;
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 280),
                     curve: Curves.easeOutCubic,
                     height: showAnswerArea ? 170 : 340,
                     child: PageView.builder(
                       controller: _pageController,
-                      itemCount: challengeCards.length,
+                      itemCount: _prompts.length,
                       onPageChanged: (index) {
-  setState(() {
-    selectedIndex = index;
-    if (showAnswerArea) {
-      showAnswerArea = false;
-    }
-  });
-},
+                        setState(() {
+                          selectedIndex = index;
+                          if (showAnswerArea) {
+                            showAnswerArea = false;
+                          }
+                        });
+                      },
                       itemBuilder: (context, index) {
                         final isSelected = index == selectedIndex;
                         return AnimatedPadding(
-  duration: const Duration(milliseconds: 220),
-  curve: Curves.easeOutCubic,
-  padding: EdgeInsets.symmetric(
-    horizontal: 8,
-    vertical: showAnswerArea
-        ? (isSelected ? 6 : 20)
-        : (isSelected ? 6 : 18),
-  ),
-  child: _ChallengeCarouselCard(
-  text: challengeCards[index],
-  selected: isSelected,
-  compact: showAnswerArea,
-  onTap: () {
-    if (index == selectedIndex) {
-      setState(() {
-        showAnswerArea = true;
-      });
-    } else {
-      setState(() {
-        selectedIndex = index;
-        showAnswerArea = false;
-      });
-      _pageController.animateToPage(
-        index,
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutCubic,
-      );
-    }
-  },
-),
-);
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: showAnswerArea
+                                ? (isSelected ? 6 : 20)
+                                : (isSelected ? 6 : 18),
+                          ),
+                          child: _ChallengeCarouselCard(
+                            text: _prompts[index],
+                            selected: isSelected,
+                            compact: showAnswerArea,
+                            onTap: () {
+                              if (index == selectedIndex) {
+                                setState(() {
+                                  showAnswerArea = true;
+                                });
+                              } else {
+                                setState(() {
+                                  selectedIndex = index;
+                                  showAnswerArea = false;
+                                });
+                                _pageController.animateToPage(
+                                  index,
+                                  duration: const Duration(milliseconds: 240),
+                                  curve: Curves.easeOutCubic,
+                                );
+                              }
+                            },
+                          ),
+                        );
                       },
                     ),
                   ),
-
                   const SizedBox(height: 18),
-
                   if (!showAnswerArea)
                     Center(
                       child: SizedBox(
@@ -189,7 +231,6 @@ static const Color figCream = FigColors.cream;
                         ),
                       ),
                     ),
-
                   if (showAnswerArea) ...[
                     const SizedBox(height: 4),
                     Row(
@@ -225,8 +266,8 @@ static const Color figCream = FigColors.cream;
                               color: Colors.white.withOpacity(0.08),
                             ),
                           ),
-                          child: Row(
-                            children: const [
+                          child: const Row(
+                            children: [
                               Icon(
                                 Icons.mic_none_rounded,
                                 size: 18,
@@ -260,7 +301,7 @@ static const Color figCream = FigColors.cream;
                           height: 1.4,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'Balance ta réponse ici…',
+                          hintText: 'Balance ta r\u00e9ponse ici\u2026',
                           hintStyle: const TextStyle(
                             fontFamily: 'Inter',
                             color: Colors.white38,
@@ -294,22 +335,35 @@ static const Color figCream = FigColors.cream;
                       width: double.infinity,
                       child: FilledButton(
                         onPressed: canContinue
-    ? () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ChallengeQuizPage(
-              cards: getChallengeCards(),
-              challengeAnswer: _textController.text,
-            ),
-          ),
-        );
-      }
+                            ? () async {
+
+                                // Mettre à jour la question du défi dans Firestore
+if (widget.gameId != null) {
+  await GameService().updateChallengeQuestion(
+    gameId: widget.gameId!,
+    question: _prompts[selectedIndex],
+  );
+}
+
+if (!mounted) return;
+Navigator.push(
+  context,
+  MaterialPageRoute(
+    builder: (_) => ChallengeQuizPage(
+      cards: _quizCards,
+      challengeAnswer: _textController.text,
+      gameId: widget.gameId,
+    ),
+  ),
+);
+
+                              }
                             : null,
                         style: FilledButton.styleFrom(
                           backgroundColor: figCream,
                           foregroundColor: figBackground,
-                          disabledBackgroundColor: Colors.white.withOpacity(0.08),
+                          disabledBackgroundColor:
+                              Colors.white.withOpacity(0.08),
                           disabledForegroundColor: Colors.white38,
                           padding: const EdgeInsets.symmetric(vertical: 20),
                           shape: RoundedRectangleBorder(
@@ -349,8 +403,7 @@ class _ChallengeCarouselCard extends StatelessWidget {
     required this.onTap,
   });
 
-static const Color figCream = FigColors.cream;
-
+  static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
@@ -407,7 +460,7 @@ static const Color figCream = FigColors.cream;
                 if (!compact) ...[
                   const SizedBox(height: 12),
                   Text(
-                    selected ? 'Carte sélectionnée' : 'Fais glisser',
+                    selected ? 'Carte s\u00e9lectionn\u00e9e' : 'Fais glisser',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 13,
@@ -429,8 +482,7 @@ class _RespondCtaCard extends StatelessWidget {
 
   const _RespondCtaCard({required this.onTap});
 
-static const Color figCream = FigColors.cream;
-
+  static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
@@ -447,11 +499,11 @@ static const Color figCream = FigColors.cream;
               color: Colors.white.withOpacity(0.08),
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 18),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
+              children: [
                 Icon(
                   Icons.edit_note_rounded,
                   color: figCream,
@@ -459,7 +511,7 @@ static const Color figCream = FigColors.cream;
                 ),
                 SizedBox(width: 10),
                 Text(
-                  'Répondre à cette carte',
+                  'R\u00e9pondre \u00e0 cette carte',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
