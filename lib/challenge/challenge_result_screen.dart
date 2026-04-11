@@ -1,30 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/fig_theme.dart';
 import '../home_screen.dart';
+import 'challenge_create_screen.dart';
 import 'challenge_select_screen.dart';
+import 'challenge_opponent_flow.dart';
+import '../services/game_service.dart';
 
 class ChallengeResultScreen extends StatefulWidget {
-  final String challengeQuestion;
-  final String myAnswer;
-  final String opponentAnswer;
-  final int myScore;
-  final int opponentScore;
-
-  /// Est-ce que c'est MOI qui ai choisi le défi ce tour-ci ?
-  final bool iChoseThisRound;
-
-  /// Est-ce que l'adversaire a déjà demandé revanche ?
-  final bool opponentWantsRevange;
+  final String gameId;
 
   const ChallengeResultScreen({
     super.key,
-    required this.challengeQuestion,
-    required this.myAnswer,
-    required this.opponentAnswer,
-    required this.myScore,
-    required this.opponentScore,
-    this.iChoseThisRound = true,
-    this.opponentWantsRevange = false,
+    required this.gameId,
   });
 
   @override
@@ -32,311 +20,439 @@ class ChallengeResultScreen extends StatefulWidget {
 }
 
 class _ChallengeResultScreenState extends State<ChallengeResultScreen> {
-  static const Color figBackground = FigColors.background;
-  static const Color figCream = FigColors.cream;
-
   bool _revangeRequested = false;
+  bool _navigating = false;
 
-  String get _scoreLabel {
-    if (widget.myScore > widget.opponentScore) return 'Tu m\u00e8nes.';
-    if (widget.myScore < widget.opponentScore) return 'Tu es men\u00e9\u00b7e.';
-    return '\u00c9galit\u00e9.';
+  @override
+  void initState() {
+    super.initState();
+    GameService().markRecapSeen(gameId: widget.gameId);
   }
 
-  void _handleRevange() {
-    if (widget.opponentWantsRevange) {
-      // L'autre a déjà demandé → on lance directement
-      _startRevange();
-    } else {
-      // On demande la revanche, en attente de l'autre
-      setState(() {
-        _revangeRequested = true;
-      });
+  Future<void> _navigateToNewGame() async {
+    if (_navigating || !mounted) return;
+    _navigating = true;
 
-      // TODO: backend → enregistrer la demande de revanche
-      // Pour la démo, on simule que l'autre accepte après 2 secondes
-      Future.delayed(const Duration(seconds: 2), () {
-        if (!mounted) return;
-        _startRevange();
-      });
-    }
-  }
+    try {
+      final myId = GameService().currentUserId;
 
-  void _startRevange() {
-    if (widget.iChoseThisRound) {
-      // J'avais choisi le défi → c'est à l'AUTRE de choisir → j'attends
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const _RevangeWaitingScreen(),
-        ),
-        (route) => false,
-      );
-    } else {
-      // L'autre avait choisi → c'est à MOI de choisir → je vais direct au select
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const ChallengeSelectScreen(),
-        ),
-        (route) => false,
-      );
+      final query = await FirebaseFirestore.instance
+          .collection('games')
+          .where('status', isNotEqualTo: 'completed')
+          .get();
+
+      final newGame = query.docs.where((doc) {
+        final data = doc.data();
+        return data['creatorId'] == myId || data['opponentId'] == myId;
+      }).firstOrNull;
+
+      if (newGame == null || !mounted) {
+        _navigating = false;
+        return;
+      }
+
+      final newData = newGame.data();
+      final newGameId = newGame.id;
+      final imNewCreator = newData['creatorId'] == myId;
+
+      if (imNewCreator) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChallengeSelectScreen(gameId: newGameId),
+          ),
+          (route) => false,
+        );
+      } else {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChallengeOpponentFlow(
+              gameId: newGameId,
+              creatorName: newData['creatorName'] ?? 'Adversaire',
+              challengeQuestion: newData['challengeQuestion'] ?? '',
+              status: newData['status'] ?? 'creatorPlaying',
+            ),
+          ),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      debugPrint('Erreur navigation revanche: $e');
+      _navigating = false;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('games')
+          .doc(widget.gameId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data?.data() == null) {
+          return Scaffold(
+            backgroundColor: FigColors.background,
+            body: const Center(
+              child: CircularProgressIndicator(color: FigColors.cream),
+            ),
+          );
+        }
+
+        final game = snapshot.data!.data() as Map<String, dynamic>;
+
+        // Si la partie est passée en completed (l'autre a accepté la revanche)
+        if (game['status'] == 'completed' && _revangeRequested) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _navigateToNewGame();
+          });
+          return Scaffold(
+            backgroundColor: FigColors.background,
+            body: const Center(
+              child: CircularProgressIndicator(color: FigColors.cream),
+            ),
+          );
+        }
+
+        final creatorName = game['creatorName'] ?? 'Joueur 1';
+        final opponentName = game['opponentName'] ?? 'Joueur 2';
+        final creatorAnswer = game['creatorAnswer'] ?? '';
+        final opponentAnswer = game['opponentAnswer'] ?? '';
+        final creatorScore = game['creatorScore'] ?? 0;
+        final opponentScore = game['opponentScore'] ?? 0;
+        final challengeQuestion = game['challengeQuestion'] ?? '';
+        final revangeRequest = game['revangeRequest'] ?? 'none';
+
+        final myId = GameService().currentUserId;
+        final isCreator = game['creatorId'] == myId;
+        final myName = isCreator ? creatorName : opponentName;
+        final otherName = isCreator ? opponentName : creatorName;
+        final myAnswer = isCreator ? creatorAnswer : opponentAnswer;
+        final otherAnswer = isCreator ? opponentAnswer : creatorAnswer;
+        final myScore = isCreator ? creatorScore : opponentScore;
+        final otherScore = isCreator ? opponentScore : creatorScore;
+
+        final otherWantsRevange = isCreator
+            ? revangeRequest == 'byOpponent'
+            : revangeRequest == 'byCreator';
+        final iRequestedRevange = isCreator
+            ? revangeRequest == 'byCreator'
+            : revangeRequest == 'byOpponent';
+
+        String scoreLabel;
+        if (myScore > otherScore) {
+          scoreLabel = 'Tu mènes !';
+        } else if (myScore < otherScore) {
+          scoreLabel = 'Tu es mené·e.';
+        } else {
+          scoreLabel = 'Égalité.';
+        }
+
+        return Scaffold(
+          body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  FigColors.background,
-                  FigColors.backgroundDeep,
-                ],
+                colors: [FigColors.background, FigColors.backgroundDeep],
               ),
             ),
-          ),
-          Positioned(
-            bottom: -140,
-            left: -80,
-            right: -80,
-            child: Opacity(
-              opacity: 0.05,
-              child: Image.asset(
-                'assets/logo_symbol_calc.png',
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const HomeScreen(),
-                        ),
+                            builder: (_) => const HomeScreen()),
                         (route) => false,
-                      );
-                    },
-                    icon: const Icon(Icons.close_rounded),
-                    color: figCream,
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'M\u00eame d\u00e9fi.\nDeux histoires.',
-                    style: TextStyle(
-                      fontFamily: 'Florisha',
-                      fontSize: 34,
-                      fontWeight: FontWeight.w700,
-                      color: figCream,
-                      height: 1.05,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _scoreLabel,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 16,
-                      color: Colors.white54,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Score visuel
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 18, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.08),
                       ),
+                      icon: const Icon(Icons.close_rounded),
+                      color: FigColors.cream,
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Toi  ${widget.myScore}',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: widget.myScore >= widget.opponentScore
-                                ? figCream
-                                : Colors.white54,
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            '\u2014',
-                            style: TextStyle(
-                              color: Colors.white24,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '${widget.opponentScore}  L\u2019autre',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: widget.opponentScore >= widget.myScore
-                                ? figCream
-                                : Colors.white54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  // Bandeau revanche demandée par l'autre
-                  if (widget.opponentWantsRevange && !_revangeRequested)
+                    const SizedBox(height: 16),
+
                     Container(
                       width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: const Color(0x22E9DFC8),
-                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.white.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(22),
                         border: Border.all(
-                          color: const Color(0x55E9DFC8),
-                        ),
+                            color: Colors.white.withOpacity(0.08)),
                       ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.local_fire_department_rounded,
-                            color: figCream,
-                            size: 22,
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'L\u2019autre veut sa revanche !',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w700,
-                                color: figCream,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  // Réponses
-                  Expanded(
-                    child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          _AnswerCard(
-                            label: 'Toi',
-                            text: widget.myAnswer,
+                          Text(
+                            scoreLabel,
+                            style: const TextStyle(
+                              fontFamily: 'Florisha',
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                              color: FigColors.cream,
+                            ),
                           ),
-                          const SizedBox(height: 14),
-                          _AnswerCard(
-                            label: 'L\u2019autre',
-                            text: widget.opponentAnswer,
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _ScoreBadge(
+                                  name: myName,
+                                  score: myScore,
+                                  isMe: true),
+                              const SizedBox(width: 20),
+                              const Text('—',
+                                  style: TextStyle(
+                                      color: Colors.white38,
+                                      fontSize: 24)),
+                              const SizedBox(width: 20),
+                              _ScoreBadge(
+                                  name: otherName,
+                                  score: otherScore,
+                                  isMe: false),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Bouton Revanche
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _revangeRequested ? null : _handleRevange,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: figCream,
-                        foregroundColor: figBackground,
-                        disabledBackgroundColor:
-                            Colors.white.withOpacity(0.08),
-                        disabledForegroundColor: Colors.white38,
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
-                        ),
+                    const SizedBox(height: 20),
+
+                    Text(
+                      challengeQuestion,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white54,
                       ),
-                      child: Text(
-                        _revangeRequested
-                            ? 'Revanche demand\u00e9e\u2026'
-                            : widget.opponentWantsRevange
-                                ? 'Accepter la revanche'
-                                : 'Revanche',
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
+                    ),
+                    const SizedBox(height: 14),
+
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            _AnswerCard(
+                              label: 'Toi',
+                              answer: myAnswer,
+                              isMe: true,
+                            ),
+                            const SizedBox(height: 12),
+                            _AnswerCard(
+                              label: otherName,
+                              answer: otherAnswer,
+                              isMe: false,
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Bouton Retour
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.pushAndRemoveUntil(
+                    const SizedBox(height: 16),
+
+                    if (otherWantsRevange)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: FigColors.cream.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                              color: FigColors.cream.withOpacity(0.2)),
+                        ),
+                        child: Text(
+                          '$otherName veut une revanche !',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                            color: FigColors.cream,
+                          ),
+                        ),
+                      ),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: (iRequestedRevange || _revangeRequested)
+                            ? null
+                            : () async {
+                                if (otherWantsRevange) {
+                                  final newGameId =
+                                      await GameService().acceptRevange(
+                                    gameId: widget.gameId,
+                                  );
+                                  if (!mounted) return;
+
+                                  final newGameData =
+                                      await FirebaseFirestore.instance
+                                          .collection('games')
+                                          .doc(newGameId)
+                                          .get();
+                                  final newData = newGameData.data();
+                                  final imNewCreator =
+                                      newData?['creatorId'] == myId;
+
+                                  if (!mounted) return;
+
+                                  if (imNewCreator) {
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            ChallengeSelectScreen(
+                                          gameId: newGameId,
+                                        ),
+                                      ),
+                                      (route) => false,
+                                    );
+                                  } else {
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            ChallengeOpponentFlow(
+                                          gameId: newGameId,
+                                          creatorName:
+                                              newData?['creatorName'] ??
+                                                  'Adversaire',
+                                          challengeQuestion:
+                                              newData?['challengeQuestion'] ??
+                                                  '',
+                                          status:
+                                              newData?['status'] ??
+                                                  'creatorPlaying',
+                                        ),
+                                      ),
+                                      (route) => false,
+                                    );
+                                  }
+                                } else {
+                                  await GameService().requestRevange(
+                                    gameId: widget.gameId,
+                                  );
+                                  if (!mounted) return;
+                                  setState(
+                                      () => _revangeRequested = true);
+                                }
+                              },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: FigColors.cream,
+                          foregroundColor: FigColors.background,
+                          disabledBackgroundColor:
+                              FigColors.cream.withOpacity(0.4),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
+                        child: Text(
+                          otherWantsRevange
+                              ? 'Accepter la revanche'
+                              : (iRequestedRevange || _revangeRequested)
+                                  ? 'Revanche demandée\u2026'
+                                  : 'Revanche',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const HomeScreen(),
-                          ),
+                              builder: (_) => const HomeScreen()),
                           (route) => false,
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: figCream,
-                        side: const BorderSide(color: Color(0x33E9DFC8)),
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
                         ),
-                      ),
-                      child: const Text(
-                        'Retour accueil',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: FigColors.cream,
+                          side: BorderSide(
+                              color: FigColors.cream.withOpacity(0.3)),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
+                        child: const Text(
+                          'Retour accueil',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ],
-      ),
+        );
+      },
+    );
+  }
+}
+
+class _ScoreBadge extends StatelessWidget {
+  final String name;
+  final int score;
+  final bool isMe;
+
+  const _ScoreBadge({
+    required this.name,
+    required this.score,
+    required this.isMe,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          '$score',
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 32,
+            fontWeight: FontWeight.w900,
+            color: isMe ? FigColors.cream : Colors.white54,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          isMe ? 'Toi' : name,
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isMe ? FigColors.cream : Colors.white54,
+          ),
+        ),
+      ],
     );
   }
 }
 
 class _AnswerCard extends StatelessWidget {
   final String label;
-  final String text;
+  final String answer;
+  final bool isMe;
 
   const _AnswerCard({
     required this.label,
-    required this.text,
+    required this.answer,
+    required this.isMe,
   });
-
-  static const Color figCream = FigColors.cream;
 
   @override
   Widget build(BuildContext context) {
@@ -344,10 +460,10 @@ class _AnswerCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(24),
+        color: Colors.white.withOpacity(isMe ? 0.07 : 0.04),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.white.withOpacity(isMe ? 0.12 : 0.06),
         ),
       ),
       child: Column(
@@ -359,133 +475,18 @@ class _AnswerCard extends StatelessWidget {
               fontFamily: 'Inter',
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Colors.white60,
+              color: Colors.white54,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
-            text,
+            answer.isEmpty ? '—' : answer,
             style: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: figCream,
-              height: 1.35,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Écran d'attente quand j'ai demandé revanche mais c'est à l'autre de choisir
-class _RevangeWaitingScreen extends StatelessWidget {
-  const _RevangeWaitingScreen();
-
-  static const Color figCream = FigColors.cream;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  FigColors.background,
-                  FigColors.backgroundDeep,
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -140,
-            left: -80,
-            right: -80,
-            child: Opacity(
-              opacity: 0.05,
-              child: Image.asset(
-                'assets/logo_symbol_calc.png',
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const HomeScreen(),
-                        ),
-                        (route) => false,
-                      );
-                    },
-                    icon: const Icon(Icons.close_rounded),
-                    color: figCream,
-                  ),
-                  const Spacer(),
-                  const Text(
-                    'Revanche accept\u00e9e.',
-                    style: TextStyle(
-                      fontFamily: 'Florisha',
-                      fontSize: 38,
-                      fontWeight: FontWeight.w700,
-                      height: 1.05,
-                      color: figCream,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'C\u2019est \u00e0 l\u2019autre de choisir le d\u00e9fi cette fois.\nTu recevras une notification quand ce sera ton tour.',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 17,
-                      color: Colors.white70,
-                      height: 1.45,
-                    ),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const HomeScreen(),
-                          ),
-                          (route) => false,
-                        );
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: figCream,
-                        foregroundColor: FigColors.background,
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
-                        ),
-                      ),
-                      child: const Text(
-                        'Retour accueil',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              fontWeight: FontWeight.w600,
+              color: FigColors.cream,
+              height: 1.4,
             ),
           ),
         ],

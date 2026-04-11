@@ -6,6 +6,7 @@ import '../services/quiz_service.dart';
 import '../models/quiz_card.dart';
 import '../quiz/quiz_screen.dart';
 import '../home_screen.dart';
+import 'challenge_result_screen.dart';
 
 class ChallengeOpponentFlow extends StatefulWidget {
   final String gameId;
@@ -76,7 +77,6 @@ class _ChallengeOpponentFlowState extends State<ChallengeOpponentFlow> {
 
   @override
   Widget build(BuildContext context) {
-    // Si le créateur n'a pas encore fini son tour → écran d'attente en temps réel
     if (widget.status != 'opponentTurn') {
       return _WaitingForCreatorScreen(
         gameId: widget.gameId,
@@ -84,7 +84,6 @@ class _ChallengeOpponentFlowState extends State<ChallengeOpponentFlow> {
       );
     }
 
-    // Le créateur a fini → afficher le défi
     return _buildChallengeScreen();
   }
 
@@ -251,8 +250,7 @@ class _ChallengeOpponentFlowState extends State<ChallengeOpponentFlow> {
                     style: FilledButton.styleFrom(
                       backgroundColor: FigColors.cream,
                       foregroundColor: FigColors.background,
-                      disabledBackgroundColor:
-                          FigColors.cream.withOpacity(0.4),
+                      disabledBackgroundColor: FigColors.cream.withOpacity(0.4),
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(22),
@@ -276,7 +274,6 @@ class _ChallengeOpponentFlowState extends State<ChallengeOpponentFlow> {
   }
 }
 
-/// Écran d'attente temps réel — écoute Firestore jusqu'à ce que le status change
 class _WaitingForCreatorScreen extends StatelessWidget {
   final String gameId;
   final String creatorName;
@@ -296,9 +293,7 @@ class _WaitingForCreatorScreen extends StatelessWidget {
       builder: (context, snapshot) {
         final data = snapshot.data?.data() as Map<String, dynamic>?;
 
-        // Dès que le status passe à opponentTurn → afficher le défi
         if (data != null && data['status'] == 'opponentTurn') {
-          // Reconstruire avec les vraies données
           WidgetsBinding.instance.addPostFrameCallback((_) {
             Navigator.pushReplacement(
               context,
@@ -381,8 +376,7 @@ class _WaitingForCreatorScreen extends StatelessWidget {
                           side: BorderSide(
                             color: FigColors.cream.withOpacity(0.3),
                           ),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 18),
+                          padding: const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(22),
                           ),
@@ -407,7 +401,6 @@ class _WaitingForCreatorScreen extends StatelessWidget {
   }
 }
 
-/// Page quiz pour l'adversaire — à la fin, soumet le score dans Firestore
 class OpponentQuizPage extends StatefulWidget {
   final String gameId;
   final String challengeAnswer;
@@ -440,6 +433,15 @@ class _OpponentQuizPageState extends State<OpponentQuizPage> {
     } catch (e) {
       debugPrint('Erreur soumission tour adversaire: $e');
     }
+
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChallengeResultScreen(gameId: widget.gameId),
+      ),
+      (route) => false,
+    );
   }
 
   @override

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'models/vs_game.dart';
-import 'data/demo_data.dart';
 import 'theme/fig_theme.dart';
+import 'services/game_service.dart';
 import 'challenge/challenge_create_screen.dart';
 import 'challenge/challenge_result_screen.dart';
+import 'challenge/challenge_opponent_flow.dart';
+import 'home_screen.dart';
 
 class VsScreen extends StatelessWidget {
   const VsScreen({super.key});
@@ -13,18 +14,6 @@ class VsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final actionableGames = demoGames
-        .where(
-          (game) =>
-              game.status == VsGameStatus.creatorPlaying ||
-              game.status == VsGameStatus.recapAvailable,
-        )
-        .toList();
-
-    final waitingGames = demoGames
-        .where((game) => game.status == VsGameStatus.opponentTurn)
-        .toList();
-
     return Scaffold(
       body: Stack(
         children: [
@@ -33,10 +22,7 @@ class VsScreen extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  figBackground,
-                  Color(0xFF1A0D36),
-                ],
+                colors: [figBackground, Color(0xFF1A0D36)],
               ),
             ),
           ),
@@ -66,10 +52,7 @@ class VsScreen extends StatelessWidget {
                         color: figCream,
                       ),
                       const Spacer(),
-                      Image.asset(
-                        'assets/logo_full.png',
-                        width: 90,
-                      ),
+                      Image.asset('assets/logo_full.png', width: 90),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -104,40 +87,60 @@ class VsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _VsColumn(
-                            title: '\u00c0 toi',
-                            items: actionableGames
-                                .map(
-                                  (game) => _VsMiniCard(
-                                    game: game,
-                                    onTap: () {
-                                      _openGame(context, game);
-                                    },
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _VsColumn(
-                            title: 'En cours',
-                            items: waitingGames
-                                .map(
-                                  (game) => _VsMiniCard(
-                                    game: game,
-                                    onTap: () {
-                                      _openGame(context, game);
-                                    },
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ),
-                      ],
+                    child: StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: GameService().watchMyGames(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: figCream,
+                            ),
+                          );
+                        }
+
+                        final games = snapshot.data ?? [];
+
+                        final actionableGames = games
+                            .where((g) =>
+                                g['status'] == 'creatorPlaying' ||
+                                g['status'] == 'recapAvailable')
+                            .toList();
+
+                        final waitingGames = games
+                            .where((g) => g['status'] == 'opponentTurn')
+                            .toList();
+
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _VsColumn(
+                                title: '\u00c0 toi',
+                                items: actionableGames
+                                    .map((game) => _VsMiniCard(
+                                          game: game,
+                                          onTap: () =>
+                                              _openGame(context, game),
+                                        ))
+                                    .toList(),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _VsColumn(
+                                title: 'En cours',
+                                items: waitingGames
+                                    .map((game) => _VsMiniCard(
+                                          game: game,
+                                          onTap: () =>
+                                              _openGame(context, game),
+                                        ))
+                                    .toList(),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -149,9 +152,12 @@ class VsScreen extends StatelessWidget {
     );
   }
 
-  void _openGame(BuildContext context, VsGame game) {
-    switch (game.status) {
-      case VsGameStatus.creatorPlaying:
+  void _openGame(BuildContext context, Map<String, dynamic> game) {
+    final status = game['status'] ?? '';
+    final gameId = game['id'] ?? '';
+
+    switch (status) {
+      case 'creatorPlaying':
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -159,33 +165,24 @@ class VsScreen extends StatelessWidget {
           ),
         );
         break;
-      case VsGameStatus.opponentTurn:
+      case 'opponentTurn':
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => ChallengePendingScreen(
-              opponentName: game.opponentName ?? 'En attente\u2026',
-
-              challengeQuestion: game.challengeQuestion,
+              opponentName: game['opponentName'] ?? 'En attente\u2026',
+              challengeQuestion: game['challengeQuestion'] ?? '',
             ),
           ),
         );
         break;
-      case VsGameStatus.recapAvailable:
+      case 'recapAvailable':
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ChallengeResultScreen(
-              challengeQuestion: game.challengeQuestion,
-              myAnswer: game.creatorAnswer ?? '',
-              opponentAnswer: game.opponentAnswer ?? '',
-              myScore: game.creatorScore,
-              opponentScore: game.opponentScore,
-            ),
+            builder: (_) => ChallengeResultScreen(gameId: gameId),
           ),
         );
-        break;
-      case VsGameStatus.completed:
         break;
     }
   }
@@ -249,7 +246,7 @@ class _VsColumn extends StatelessWidget {
 }
 
 class _VsMiniCard extends StatelessWidget {
-  final VsGame game;
+  final Map<String, dynamic> game;
   final VoidCallback onTap;
 
   const _VsMiniCard({
@@ -260,34 +257,34 @@ class _VsMiniCard extends StatelessWidget {
   static const Color figCream = FigColors.cream;
 
   IconData get _icon {
-    switch (game.status) {
-      case VsGameStatus.creatorPlaying:
+    switch (game['status']) {
+      case 'creatorPlaying':
         return Icons.reply_rounded;
-      case VsGameStatus.opponentTurn:
+      case 'opponentTurn':
         return Icons.more_horiz_rounded;
-      case VsGameStatus.recapAvailable:
+      case 'recapAvailable':
         return Icons.visibility_outlined;
-      case VsGameStatus.completed:
+      default:
         return Icons.check_rounded;
     }
   }
 
   String get _label {
-    switch (game.status) {
-      case VsGameStatus.creatorPlaying:
+    switch (game['status']) {
+      case 'creatorPlaying':
         return '\u00c0 toi de jouer';
-      case VsGameStatus.opponentTurn:
-        return '\u00c0 ${game.opponentName} de jouer';
-      case VsGameStatus.recapAvailable:
+      case 'opponentTurn':
+        return '\u00c0 ${game['opponentName'] ?? 'l\'autre'} de jouer';
+      case 'recapAvailable':
         return 'Voir le r\u00e9cap';
-      case VsGameStatus.completed:
+      default:
         return 'Termin\u00e9e';
     }
   }
 
   bool get _highlight {
-    return game.status == VsGameStatus.creatorPlaying ||
-        game.status == VsGameStatus.recapAvailable;
+    return game['status'] == 'creatorPlaying' ||
+        game['status'] == 'recapAvailable';
   }
 
   @override
@@ -317,8 +314,7 @@ class _VsMiniCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    game.opponentName ?? 'En attente\u2026',
-
+                    game['opponentName'] ?? 'En attente\u2026',
                     style: const TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
@@ -430,10 +426,7 @@ class ChallengePendingScreen extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  FigColors.background,
-                  FigColors.backgroundDeep,
-                ],
+                colors: [FigColors.background, FigColors.backgroundDeep],
               ),
             ),
           ),

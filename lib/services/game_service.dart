@@ -7,6 +7,8 @@ class GameService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   String? get _userId => _auth.currentUser?.uid;
+String? get currentUserId => _userId;
+
 
   /// Créer une nouvelle partie
   Future<String> createGame({required String challengeQuestion}) async {
@@ -161,38 +163,29 @@ class GameService {
   }
 
   /// Écouter mes parties en temps réel
-  Stream<List<Map<String, dynamic>>> watchMyGames() {
+    Stream<List<Map<String, dynamic>>> watchMyGames() {
     if (_userId == null) return const Stream.empty();
 
-    final creatorStream = _db
+    return _db
         .collection('games')
-        .where('creatorId', isEqualTo: _userId)
         .where('status', isNotEqualTo: 'completed')
         .snapshots()
-        .map((snap) => snap.docs.map((d) {
-              final data = d.data();
-              data['id'] = d.id;
-              return data;
-            }).toList());
-
-    final opponentStream = _db
-        .collection('games')
-        .where('opponentId', isEqualTo: _userId)
-        .where('status', isNotEqualTo: 'completed')
-        .snapshots()
-        .map((snap) => snap.docs.map((d) {
-              final data = d.data();
-              data['id'] = d.id;
-              return data;
-            }).toList());
-
-    // Combine les deux streams
-    return creatorStream.asyncExpand((creatorGames) {
-      return opponentStream.map((opponentGames) {
-        return [...creatorGames, ...opponentGames];
-      });
+        .map((snap) {
+      return snap.docs
+          .where((doc) {
+            final data = doc.data();
+            return data['creatorId'] == _userId ||
+                data['opponentId'] == _userId;
+          })
+          .map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          })
+          .toList();
     });
   }
+
 
   /// Mettre à jour la question du défi
   Future<void> updateChallengeQuestion({

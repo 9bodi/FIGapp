@@ -4,6 +4,8 @@ import 'services/game_service.dart';
 import 'vs_screen.dart';
 import 'quiz/quiz_screen.dart';
 import 'challenge/challenge_create_screen.dart';
+import 'challenge/challenge_result_screen.dart';
+import 'challenge/challenge_opponent_flow.dart';
 import 'screens/join_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -114,10 +116,13 @@ class HomeScreen extends StatelessWidget {
                               const SizedBox(height: 10),
                           itemBuilder: (_, index) {
                             final game = games[index];
-                            return _GameCard(
-                              title: game['opponentName'] ??
-                                  'En attente\u2026',
-                              subtitle: _statusLabel(game),
+                            return GestureDetector(
+                              onTap: () => _openGame(context, game),
+                              child: _GameCard(
+                                title: game['opponentName'] ??
+                                    'En attente\u2026',
+                                subtitle: _statusLabel(game),
+                              ),
                             );
                           },
                         );
@@ -196,12 +201,86 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  void _openGame(BuildContext context, Map<String, dynamic> game) {
+    final status = game['status'] ?? '';
+    final gameId = game['id'] ?? '';
+    final myId = GameService().currentUserId;
+    final isCreator = game['creatorId'] == myId;
+
+    switch (status) {
+      case 'creatorPlaying':
+        if (isCreator) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const ChallengeCreateScreen(),
+            ),
+          );
+        }
+        break;
+      case 'opponentTurn':
+        if (isCreator) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChallengePendingScreen(
+                opponentName:
+                    game['opponentName'] ?? 'En attente\u2026',
+                challengeQuestion:
+                    game['challengeQuestion'] ?? '',
+              ),
+            ),
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChallengeOpponentFlow(
+                gameId: gameId,
+                creatorName:
+                    game['creatorName'] ?? 'Adversaire',
+                challengeQuestion:
+                    game['challengeQuestion'] ?? '',
+                status: 'opponentTurn',
+              ),
+            ),
+          );
+        }
+        break;
+      case 'recapAvailable':
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                ChallengeResultScreen(gameId: gameId),
+          ),
+        );
+        break;
+    }
+  }
+
   String _statusLabel(Map<String, dynamic> game) {
+    final myId = GameService().currentUserId;
+    final isCreator = game['creatorId'] == myId;
+    final revangeRequest = game['revangeRequest'] ?? 'none';
+
+    final otherWantsRevange = isCreator
+        ? revangeRequest == 'byOpponent'
+        : revangeRequest == 'byCreator';
+
+    if (otherWantsRevange && game['status'] == 'recapAvailable') {
+      return 'Revanche ? \u2022 R\u00e9cap dispo';
+    }
+
     switch (game['status']) {
       case 'creatorPlaying':
-        return '\u00c0 toi de jouer';
+        return isCreator
+            ? '\u00c0 toi de jouer'
+            : 'En attente de l\u2019autre';
       case 'opponentTurn':
-        return 'En attente de l\u2019autre';
+        return isCreator
+            ? 'En attente de l\u2019autre'
+            : '\u00c0 toi de jouer';
       case 'recapAvailable':
         return 'R\u00e9cap disponible';
       case 'completed':

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../home_screen.dart';
 import '../challenge/challenge_result_screen.dart';
 import '../models/quiz_card.dart';
@@ -211,8 +212,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                 ),
                 const SizedBox(height: 18),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: isCorrect
                         ? const Color(0x22E9DFC8)
@@ -320,18 +320,16 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
 
   Future<void> _goNext() async {
     if (currentIndex == widget.cards.length - 1) {
-      // Appeler onComplete si fourni (ex: OpponentQuizPage)
       if (widget.onComplete != null) {
         await widget.onComplete!(correctAnswers);
+        return;
       }
 
-      // Appeler onFinished si fourni (ex: ChallengeQuizPage)
       if (widget.onFinished != null) {
         widget.onFinished!();
         return;
       }
 
-      // Par défaut : aller au résultat solo
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -727,6 +725,7 @@ class ChallengeWaitingPage extends StatefulWidget {
 
 class _ChallengeWaitingPageState extends State<ChallengeWaitingPage> {
   static const Color figCream = FigColors.cream;
+  bool _navigated = false;
 
   @override
   void initState() {
@@ -749,6 +748,39 @@ class _ChallengeWaitingPageState extends State<ChallengeWaitingPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.gameId != null) {
+      return StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('games')
+            .doc(widget.gameId)
+            .snapshots(),
+        builder: (context, snapshot) {
+          final data = snapshot.data?.data() as Map<String, dynamic>?;
+
+          if (data != null && data['status'] == 'recapAvailable' && !_navigated) {
+            _navigated = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ChallengeResultScreen(
+                    gameId: widget.gameId!,
+                  ),
+                ),
+                (route) => false,
+              );
+            });
+          }
+
+          return _buildWaitingUI(context);
+        },
+      );
+    }
+
+    return _buildWaitingUI(context);
+  }
+
+  Widget _buildWaitingUI(BuildContext context) {
     return Scaffold(
       body: _QuizBackground(
         child: SafeArea(
