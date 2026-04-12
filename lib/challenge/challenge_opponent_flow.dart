@@ -89,8 +89,9 @@ class _ChallengeOpponentFlowState extends State<ChallengeOpponentFlow> {
 
   Widget _buildChallengeScreen() {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -98,150 +99,167 @@ class _ChallengeOpponentFlowState extends State<ChallengeOpponentFlow> {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const HomeScreen()),
-                    (route) => false,
-                  ),
-                  icon: const Icon(Icons.close_rounded),
-                  color: FigColors.cream,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  '${widget.creatorName} te défie !',
-                  style: const TextStyle(
-                    fontFamily: 'Florisha',
-                    fontSize: 30,
-                    fontWeight: FontWeight.w700,
-                    color: FigColors.cream,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.07),
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
-                  ),
+          child: Column(
+            children: [
+              // ── Contenu scrollable ──
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Le défi',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white54,
-                          letterSpacing: 1,
+                      IconButton(
+                        onPressed: () => Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const HomeScreen()),
+                          (route) => false,
                         ),
+                        icon: const Icon(Icons.close_rounded),
+                        color: FigColors.cream,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 24),
                       Text(
-                        widget.challengeQuestion,
+                        '${widget.creatorName} te défie !',
                         style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Florisha',
+                          fontSize: 30,
+                          fontWeight: FontWeight.w700,
                           color: FigColors.cream,
-                          height: 1.4,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                if (!_answered) ...[
-                  const Text(
-                    'Ta réponse',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white70,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _answerController,
-                    maxLines: 3,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 16,
-                      color: FigColors.cream,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: 'Écris ta réponse ici…',
-                      hintStyle: TextStyle(
-                        fontFamily: 'Inter',
-                        color: Colors.white.withOpacity(0.25),
-                      ),
-                      filled: true,
-                      fillColor: Colors.white.withOpacity(0.06),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(
-                          color: Colors.white.withOpacity(0.1),
+                      const SizedBox(height: 24),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(22),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.07),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.1)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Le défi',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white54,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              widget.challengeQuestion,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: FigColors.cream,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(
-                          color: Colors.white.withOpacity(0.1),
+                      const SizedBox(height: 24),
+                      if (!_answered) ...[
+                        const Text(
+                          'Ta réponse',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white70,
+                          ),
                         ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: FigColors.cream),
-                      ),
-                    ),
-                  ),
-                ],
-                if (_answered && _loadingCards)
-                  const Expanded(
-                    child: Center(
-                      child: CircularProgressIndicator(color: FigColors.cream),
-                    ),
-                  ),
-                if (_answered && !_loadingCards)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.check_circle_rounded,
-                          color: FigColors.cream,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Réponse enregistrée : "${_answerController.text.trim()}"',
-                            style: const TextStyle(
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _answerController,
+                          maxLines: 3,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            color: FigColors.cream,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Écris ta réponse ici…',
+                            hintStyle: TextStyle(
                               fontFamily: 'Inter',
-                              fontSize: 14,
-                              color: Colors.white70,
+                              color: Colors.white.withOpacity(0.25),
+                            ),
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.06),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: Colors.white.withOpacity(0.1),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: Colors.white.withOpacity(0.1),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(
+                                  color: FigColors.cream),
                             ),
                           ),
                         ),
                       ],
-                    ),
+                      if (_answered && _loadingCards)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                                color: FigColors.cream),
+                          ),
+                        ),
+                      if (_answered && !_loadingCards)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                color: FigColors.cream,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Réponse enregistrée : "${_answerController.text.trim()}"',
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 14,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
-                const Spacer(),
-                SizedBox(
+                ),
+              ),
+
+              // ── Bouton fixé en bas ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: SizedBox(
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: _answered
@@ -250,7 +268,8 @@ class _ChallengeOpponentFlowState extends State<ChallengeOpponentFlow> {
                     style: FilledButton.styleFrom(
                       backgroundColor: FigColors.cream,
                       foregroundColor: FigColors.background,
-                      disabledBackgroundColor: FigColors.cream.withOpacity(0.4),
+                      disabledBackgroundColor:
+                          FigColors.cream.withOpacity(0.4),
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(22),
@@ -265,8 +284,8 @@ class _ChallengeOpponentFlowState extends State<ChallengeOpponentFlow> {
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -311,7 +330,7 @@ class _WaitingForCreatorScreen extends StatelessWidget {
 
         return Scaffold(
           body: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -319,7 +338,7 @@ class _WaitingForCreatorScreen extends StatelessWidget {
               ),
             ),
             child: SafeArea(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -334,7 +353,9 @@ class _WaitingForCreatorScreen extends StatelessWidget {
                       icon: const Icon(Icons.close_rounded),
                       color: FigColors.cream,
                     ),
-                    const Spacer(),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.2,
+                    ),
                     Text(
                       '$creatorName prépare son défi…',
                       style: const TextStyle(
@@ -358,10 +379,11 @@ class _WaitingForCreatorScreen extends StatelessWidget {
                     const SizedBox(height: 32),
                     const Center(
                       child: CircularProgressIndicator(
-                        color: FigColors.cream,
-                      ),
+                          color: FigColors.cream),
                     ),
-                    const Spacer(),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.15,
+                    ),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
@@ -376,7 +398,8 @@ class _WaitingForCreatorScreen extends StatelessWidget {
                           side: BorderSide(
                             color: FigColors.cream.withOpacity(0.3),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 18),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(22),
                           ),
@@ -426,9 +449,9 @@ class _OpponentQuizPageState extends State<OpponentQuizPage> {
 
     try {
       await GameService().submitOpponentTurn(
-        gameId: widget.gameId,
-        answer: widget.challengeAnswer,
-        score: score,
+        widget.gameId,
+        widget.challengeAnswer,
+        quizScore: score,
       );
     } catch (e) {
       debugPrint('Erreur soumission tour adversaire: $e');

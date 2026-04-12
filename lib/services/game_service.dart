@@ -1,54 +1,49 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/vs_game.dart';
 
 class GameService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   String? get _userId => _auth.currentUser?.uid;
-String? get currentUserId => _userId;
+  String? get currentUserId => _userId;
 
-
-  /// Créer une nouvelle partie
-  Future<String> createGame({required String challengeQuestion}) async {
+  // ── Créer une partie ──────────────────────────────────────────────
+  Future<String> createGame() async {
     if (_userId == null) throw Exception('Non connecté');
 
-    // Récupérer le nom du joueur
     final userDoc = await _db.collection('users').doc(_userId).get();
-    final displayName = userDoc.data()?['displayName'];
+    final displayName = userDoc.data()?['displayName'] ?? 'Joueur';
 
-    final doc = _db.collection('games').doc();
-
-    await doc.set({
+    final doc = await _db.collection('games').add({
       'creatorId': _userId,
-      'opponentId': null,
       'creatorName': displayName,
-      'opponentName': null,
-      'status': 'creatorPlaying',
-      'creatorChoseChallenge': true,
-      'challengeQuestion': challengeQuestion,
-      'creatorAnswer': null,
-      'opponentAnswer': null,
+      'creatorChoseChallenge': false,
+      'challengeQuestion': '',
+      'creatorAnswer': '',
+      'creatorQuizScore': 0,
       'creatorScore': 0,
+      'opponentId': null,
+      'opponentName': '',
+      'opponentAnswer': '',
+      'opponentQuizScore': 0,
       'opponentScore': 0,
+      'status': 'creatorPlaying',
       'revangeRequest': 'none',
       'creatorSawRecap': false,
       'opponentSawRecap': false,
-      'inviteCode': doc.id.substring(0, 8),
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    final inviteCode = doc.id.substring(0, 8);
+    await doc.update({'inviteCode': inviteCode});
 
     return doc.id;
   }
 
-  /// Rejoindre une partie via code d'invitation
+  // ── Rejoindre une partie ──────────────────────────────────────────
   Future<void> joinGame({required String inviteCode}) async {
     if (_userId == null) throw Exception('Non connecté');
-
-    // Récupérer le nom du joueur
-    final userDoc = await _db.collection('users').doc(_userId).get();
-    final displayName = userDoc.data()?['displayName'];
 
     final query = await _db
         .collection('games')
@@ -57,113 +52,143 @@ String? get currentUserId => _userId;
         .limit(1)
         .get();
 
-    if (query.docs.isEmpty) throw Exception('Partie introuvable');
+    if (query.docs.isEmpty) throw Exception('Partie introuvable ou déjà rejointe');
 
-    final doc = query.docs.first;
+    final userDoc = await _db.collection('users').doc(_userId).get();
+    final displayName = userDoc.data()?['displayName'] ?? 'Joueur';
 
-    await doc.reference.update({
+    await query.docs.first.reference.update({
       'opponentId': _userId,
       'opponentName': displayName,
     });
   }
 
-  /// Soumettre la réponse du créateur + son score
-  Future<void> submitCreatorTurn({
-    required String gameId,
-    required String answer,
-    required int score,
+  // ── Tour du créateur ──────────────────────────────────────────────
+  Future<void> submitCreatorTurn(
+    String gameId,
+    String answer, {
+    int quizScore = 0,
   }) async {
     await _db.collection('games').doc(gameId).update({
       'creatorAnswer': answer,
-      'creatorScore': score,
+      'creatorQuizScore': quizScore,
       'status': 'opponentTurn',
     });
   }
 
-  /// Soumettre la réponse de l'adversaire + son score
-  Future<void> submitOpponentTurn({
-    required String gameId,
-    required String answer,
-    required int score,
+  // ── Tour de l'adversaire (calcule le gagnant de la manche) ───────
+  Future<void> submitOpponentTurn(
+    String gameId,
+    String answer, {
+    int quizScore = 0,
   }) async {
+    // Récupérer les données actuelles de la partie
+    final doc = await _db.collection('games').doc(gameId).get();
+    final data = doc.data()!;
+
+    final creatorQuizScore = (data['creatorQuizScore'] ?? 0) as int;
+    int creatorScore = (data['creatorScore'] ?? 0) as int;
+    int opponentScore = (data['opponentScore'] ?? 0) as int;
+
+    // Déterminer le gagnant de cette manche
+    if (creatorQuizScore > quizScore) {
+      creatorScore += 1;
+    } else if (quizScore > creatorQuizScore) {
+      opponentScore += 1;
+    }
+    // En cas d'égalité, personne ne marque
+
     await _db.collection('games').doc(gameId).update({
       'opponentAnswer': answer,
-      'opponentScore': score,
+      'opponentQuizScore': quizScore,
+      'creatorScore': creatorScore,
+      'opponentScore': opponentScore,
       'status': 'recapAvailable',
     });
   }
 
-  /// Marquer le récap comme vu
-  Future<void> markRecapSeen({required String gameId}) async {
+  // ── Marquer le récap comme vu ─────────────────────────────────────
+  Future<void> markRecapSeen(String gameId) async {
     if (_userId == null) return;
-
     final doc = await _db.collection('games').doc(gameId).get();
     final data = doc.data();
     if (data == null) return;
 
     if (data['creatorId'] == _userId) {
-      await doc.reference.update({'creatorSawRecap': true});
-    } else {
-      await doc.reference.update({'opponentSawRecap': true});
+      await _db.collection('games').doc(gameId).update({'creatorSawRecap': true});
+    } else if (data['opponentId'] == _userId) {
+      await _db.collection('games').doc(gameId).update({'opponentSawRecap': true});
     }
   }
 
-  /// Demander une revanche
-  Future<void> requestRevange({required String gameId}) async {
+  // ── Demander une revanche ─────────────────────────────────────────
+  Future<void> requestRevange(String gameId) async {
     if (_userId == null) return;
-
     final doc = await _db.collection('games').doc(gameId).get();
     final data = doc.data();
     if (data == null) return;
 
-    final isCreator = data['creatorId'] == _userId;
-
-    await doc.reference.update({
-      'revangeRequest': isCreator ? 'byCreator' : 'byOpponent',
-    });
+    final value = data['creatorId'] == _userId ? 'byCreator' : 'byOpponent';
+    await _db.collection('games').doc(gameId).update({'revangeRequest': value});
   }
 
-  /// Accepter la revanche → créer une nouvelle partie avec rôles inversés
-  Future<String> acceptRevange({required String gameId}) async {
-    final doc = await _db.collection('games').doc(gameId).get();
-    final data = doc.data();
-    if (data == null) throw Exception('Partie introuvable');
+  // ── Accepter une revanche (transférer les scores cumulés) ────────
+  Future<String> acceptRevange(String gameId) async {
+    if (_userId == null) throw Exception('Non connecté');
+
+    final oldDoc = await _db.collection('games').doc(gameId).get();
+    final oldData = oldDoc.data()!;
+
+    // Récupérer les scores cumulés de la partie précédente
+    final oldCreatorScore = (oldData['creatorScore'] ?? 0) as int;
+    final oldOpponentScore = (oldData['opponentScore'] ?? 0) as int;
+    final oldCreatorId = oldData['creatorId'] as String;
+    final oldOpponentId = oldData['opponentId'] as String;
+    final oldCreatorName = oldData['creatorName'] as String;
+    final oldOpponentName = oldData['opponentName'] as String;
 
     // Marquer l'ancienne partie comme terminée
-    await doc.reference.update({'status': 'completed'});
+    await _db.collection('games').doc(gameId).update({'status': 'completed'});
 
-    // Créer la nouvelle partie avec les rôles inversés
-    final newDoc = _db.collection('games').doc();
-
-    await newDoc.set({
-      'creatorId': data['opponentId'],
-      'opponentId': data['creatorId'],
-      'creatorName': data['opponentName'],
-      'opponentName': data['creatorName'],
-      'status': 'creatorPlaying',
-      'creatorChoseChallenge': true,
+    // Les rôles sont inversés : l'ancien adversaire devient le créateur
+    // Les scores suivent les JOUEURS, pas les rôles
+    // Nouveau créateur = ancien adversaire
+    // Nouveau adversaire = ancien créateur
+    final newDoc = await _db.collection('games').add({
+      'creatorId': oldOpponentId,
+      'creatorName': oldOpponentName,
+      'creatorChoseChallenge': false,
       'challengeQuestion': '',
-      'creatorAnswer': null,
-      'opponentAnswer': null,
-      'creatorScore': 0,
-      'opponentScore': 0,
+      'creatorAnswer': '',
+      'creatorQuizScore': 0,
+      // Le score du nouveau créateur = score de l'ancien adversaire
+      'creatorScore': oldOpponentScore,
+      'opponentId': oldCreatorId,
+      'opponentName': oldCreatorName,
+      'opponentAnswer': '',
+      'opponentQuizScore': 0,
+      // Le score du nouvel adversaire = score de l'ancien créateur
+      'opponentScore': oldCreatorScore,
+      'status': 'creatorPlaying',
       'revangeRequest': 'none',
       'creatorSawRecap': false,
       'opponentSawRecap': false,
-      'inviteCode': newDoc.id.substring(0, 8),
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    final inviteCode = newDoc.id.substring(0, 8);
+    await newDoc.update({'inviteCode': inviteCode});
 
     return newDoc.id;
   }
 
-  /// Annuler une partie
-  Future<void> cancelGame({required String gameId}) async {
+  // ── Annuler une partie ────────────────────────────────────────────
+  Future<void> cancelGame(String gameId) async {
     await _db.collection('games').doc(gameId).delete();
   }
 
-  /// Écouter mes parties en temps réel
-    Stream<List<Map<String, dynamic>>> watchMyGames() {
+  // ── Observer mes parties en temps réel ────────────────────────────
+  Stream<List<Map<String, dynamic>>> watchMyGames() {
     if (_userId == null) return const Stream.empty();
 
     return _db
@@ -186,17 +211,15 @@ String? get currentUserId => _userId;
     });
   }
 
-
-  /// Mettre à jour la question du défi
-  Future<void> updateChallengeQuestion({
-    required String gameId,
-    required String question,
-  }) async {
+  // ── Mettre à jour la question défi ────────────────────────────────
+  Future<void> updateChallengeQuestion(String gameId, String question) async {
     await _db.collection('games').doc(gameId).update({
       'challengeQuestion': question,
+      'creatorChoseChallenge': true,
     });
   }
-    /// Récupérer une partie par code d'invitation
+
+  // ── Récupérer une partie par code d'invitation ────────────────────
   Future<Map<String, dynamic>> getGameByInviteCode(String inviteCode) async {
     final query = await _db
         .collection('games')
@@ -211,5 +234,4 @@ String? get currentUserId => _userId;
     data['id'] = doc.id;
     return data;
   }
-
 }

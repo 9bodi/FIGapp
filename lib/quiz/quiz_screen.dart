@@ -8,6 +8,10 @@ import '../theme/fig_theme.dart';
 import '../services/quiz_service.dart';
 import '../services/game_service.dart';
 
+// ═══════════════════════════════════════════════════════════════════
+//  SOLO INTRO
+// ═══════════════════════════════════════════════════════════════════
+
 class SoloIntroPage extends StatefulWidget {
   const SoloIntroPage({super.key});
 
@@ -30,87 +34,94 @@ class _SoloIntroPageState extends State<SoloIntroPage> {
     try {
       final cards = await QuizService().getAllCards();
       if (!mounted) return;
-      setState(() {
-        _cards = cards;
-      });
+      setState(() => _cards = cards);
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _cards = demoCards;
-      });
+      setState(() => _cards = demoCards);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       body: _QuizBackground(
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  color: figCream,
-                ),
-                const SizedBox(height: 40),
-                const Text(
-                  'On ne t\u2019a pas tout appris.',
-                  style: TextStyle(
-                    fontFamily: 'Florisha',
-                    fontSize: 38,
-                    fontWeight: FontWeight.w700,
-                    height: 1.05,
-                    color: figCream,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  _cards != null
-                      ? '${_cards!.length} cartes pour questionner, comprendre\net voir autrement.'
-                      : 'Chargement\u2026',
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 17,
-                    color: Colors.white70,
-                    height: 1.45,
-                  ),
-                ),
-                const Spacer(),
-                if (_cards != null)
-                  Center(
-                    child: SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.6,
-                      child: _StartSessionCard(
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SoloQuizPage(cards: _cards!),
-                            ),
-                          );
-                        },
+          bottom: false,
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        color: figCream,
                       ),
-                    ),
+                      const SizedBox(height: 40),
+                      const Text(
+                        'On ne t\u2019a pas tout appris.',
+                        style: TextStyle(
+                          fontFamily: 'Florisha',
+                          fontSize: 38,
+                          fontWeight: FontWeight.w700,
+                          height: 1.05,
+                          color: figCream,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        _cards != null
+                            ? '${_cards!.length} cartes pour questionner, comprendre\net voir autrement.'
+                            : 'Chargement\u2026',
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 17,
+                          color: Colors.white70,
+                          height: 1.45,
+                        ),
+                      ),
+                      const SizedBox(height: 60),
+                      if (_cards != null)
+                        Center(
+                          child: SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.6,
+                            child: _StartSessionCard(
+                              onTap: () {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => SoloQuizPage(cards: _cards!),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      if (_cards == null)
+                        const Center(
+                          child: CircularProgressIndicator(color: FigColors.cream),
+                        ),
+                      SizedBox(height: 40 + bottomPadding),
+                    ],
                   ),
-                if (_cards == null)
-                  const Center(
-                    child: CircularProgressIndicator(
-                      color: FigColors.cream,
-                    ),
-                  ),
-                const Spacer(),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  SOLO QUIZ PAGE
+// ═══════════════════════════════════════════════════════════════════
 
 class SoloQuizPage extends StatefulWidget {
   final List<QuizCardData> cards;
@@ -175,9 +186,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
     final isCorrect = diff <= 5;
     if (isCorrect) correctAnswers += 1;
 
-    setState(() {
-      answered = true;
-    });
+    setState(() => answered = true);
 
     _openReveal(isCorrect: isCorrect, estimationGap: diff.round());
   }
@@ -187,123 +196,133 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
       context: context,
       isDismissible: false,
       enableDrag: false,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF231143),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) {
-        return SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 14, 24, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 42,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: isCorrect
-                        ? const Color(0x22E9DFC8)
-                        : Colors.white.withOpacity(0.05),
-                    border: Border.all(
-                      color: isCorrect
-                          ? const Color(0x66E9DFC8)
-                          : Colors.white.withOpacity(0.08),
-                    ),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Text(
-                    _feedbackLabel(isCorrect, estimationGap),
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFFE9DFC8),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  currentCard.revealTitle,
-                  style: const TextStyle(
-                    fontFamily: 'Florisha',
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: figCream,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                RichText(
-                  text: TextSpan(
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 16,
-                      color: Colors.white70,
-                      height: 1.5,
-                    ),
-                    children: [
-                      const TextSpan(text: 'R\u00e9ponse : '),
-                      TextSpan(
-                        text: currentCard.answerLabel,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
+        return DraggableScrollableSheet(
+          initialChildSize: 0.55,
+          minChildSize: 0.35,
+          maxChildSize: 0.85,
+          expand: false,
+          builder: (context, scrollController) {
+            return SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(24, 14, 24, 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 42,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(999),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  currentCard.revealText,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 16,
-                    color: Colors.white70,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _goNext();
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: figCream,
-                      foregroundColor: figBackground,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: isCorrect
+                            ? const Color(0x22E9DFC8)
+                            : Colors.white.withOpacity(0.05),
+                        border: Border.all(
+                          color: isCorrect
+                              ? const Color(0x66E9DFC8)
+                              : Colors.white.withOpacity(0.08),
+                        ),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Text(
+                        _feedbackLabel(isCorrect, estimationGap),
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFE9DFC8),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      currentIndex == widget.cards.length - 1
-                          ? 'Voir le bilan'
-                          : 'Carte suivante',
+                    const SizedBox(height: 18),
+                    Text(
+                      currentCard.revealTitle,
+                      style: const TextStyle(
+                        fontFamily: 'Florisha',
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: figCream,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 15,
+                          color: Colors.white70,
+                          height: 1.5,
+                        ),
+                        children: [
+                          const TextSpan(text: 'R\u00e9ponse : '),
+                          TextSpan(
+                            text: currentCard.answerLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      currentCard.revealText,
                       style: const TextStyle(
                         fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        color: Colors.white70,
+                        height: 1.5,
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _goNext();
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: figCream,
+                          foregroundColor: figBackground,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        child: Text(
+                          currentIndex == widget.cards.length - 1
+                              ? 'Voir le bilan'
+                              : 'Carte suivante',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -324,12 +343,10 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
         await widget.onComplete!(correctAnswers);
         return;
       }
-
       if (widget.onFinished != null) {
         widget.onFinished!();
         return;
       }
-
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -356,12 +373,14 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
   @override
   Widget build(BuildContext context) {
     final progress = (currentIndex + 1) / widget.cards.length;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       body: _QuizBackground(
         child: SafeArea(
+          bottom: false,
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+            padding: EdgeInsets.fromLTRB(16, 10, 16, 12 + bottomPadding),
             child: Column(
               children: [
                 Row(
@@ -375,30 +394,27 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                       'Carte ${currentIndex + 1}/${widget.cards.length}',
                       style: const TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 16,
+                        fontSize: 14,
                         color: Colors.white70,
                       ),
                     ),
                     const Spacer(),
                     _topPill(Icons.auto_awesome_outlined, currentCard.category),
-                    const SizedBox(width: 10),
-                    _topPill(
-                      Icons.check_circle_outline_rounded,
-                      '$correctAnswers',
-                    ),
+                    const SizedBox(width: 8),
+                    _topPill(Icons.check_circle_outline_rounded, '$correctAnswers'),
                   ],
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 10),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
                   child: LinearProgressIndicator(
                     value: progress,
-                    minHeight: 10,
+                    minHeight: 8,
                     backgroundColor: Colors.white12,
                     valueColor: const AlwaysStoppedAnimation(figCream),
                   ),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 10),
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 280),
@@ -415,22 +431,17 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                       ).animate(fade);
                       return FadeTransition(
                         opacity: fade,
-                        child: SlideTransition(
-                          position: slide,
-                          child: child,
-                        ),
+                        child: SlideTransition(position: slide, child: child),
                       );
                     },
                     child: Container(
                       key: ValueKey(currentIndex),
                       width: double.infinity,
-                      padding: const EdgeInsets.all(22),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.06),
-                        ),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(color: Colors.white.withOpacity(0.06)),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.25),
@@ -439,43 +450,42 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                           ),
                         ],
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: figCream,
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Text(
-                              currentCard.category.toUpperCase(),
-                              style: const TextStyle(
-                                color: figBackground,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                fontFamily: 'Inter',
-                                letterSpacing: 0.3,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: figCream,
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: Text(
+                                currentCard.category.toUpperCase(),
+                                style: const TextStyle(
+                                  color: figBackground,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  fontFamily: 'Inter',
+                                  letterSpacing: 0.3,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            currentCard.question,
-                            style: const TextStyle(
-                              fontFamily: 'Florisha',
-                              fontSize: 28,
-                              fontWeight: FontWeight.w700,
-                              height: 1.12,
-                              color: figCream,
+                            const SizedBox(height: 12),
+                            Text(
+                              currentCard.question,
+                              style: const TextStyle(
+                                fontFamily: 'Florisha',
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                height: 1.12,
+                                color: figCream,
+                              ),
                             ),
-                          ),
-                          const Spacer(),
-                          ..._buildAnswerArea(context),
-                        ],
+                            const SizedBox(height: 20),
+                            ..._buildAnswerArea(context),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -501,16 +511,16 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
               enabled: !answered,
               onTap: () => _submitChoice(i),
             ),
-            if (i < options.length - 1) const SizedBox(height: 16),
+            if (i < options.length - 1) const SizedBox(height: 12),
           ],
         ];
       case CardKind.estimation:
         return [
           Container(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(22),
               border: Border.all(color: Colors.white.withOpacity(0.06)),
             ),
             child: Column(
@@ -523,16 +533,13 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                         'Ton estimation',
                         style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 14,
+                          fontSize: 12,
                           color: Colors.white60,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 10,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(999),
@@ -541,7 +548,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                           estimationValue.round().toString(),
                           style: const TextStyle(
                             fontFamily: 'Inter',
-                            fontSize: 34,
+                            fontSize: 26,
                             fontWeight: FontWeight.w900,
                             color: figCream,
                           ),
@@ -550,52 +557,38 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 10),
                 SliderTheme(
                   data: SliderTheme.of(context).copyWith(
-                    trackHeight: 16,
+                    trackHeight: 12,
                     activeTrackColor: figCream,
                     inactiveTrackColor: Colors.white.withOpacity(0.12),
                     thumbColor: figCream,
                     overlayColor: figCream.withOpacity(0.12),
-                    thumbShape:
-                        const RoundSliderThumbShape(enabledThumbRadius: 15),
-                    overlayShape:
-                        const RoundSliderOverlayShape(overlayRadius: 24),
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
+                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 18),
                     trackShape: const RoundedRectSliderTrackShape(),
                   ),
                   child: Slider(
                     value: estimationValue,
                     min: currentCard.min ?? 1900,
                     max: currentCard.max ?? 2025,
-                    divisions:
-                        ((currentCard.max ?? 2025) - (currentCard.min ?? 1900))
-                            .round(),
-                    onChanged: answered
-                        ? null
-                        : (value) {
-                            setState(() {
-                              estimationValue = value;
-                            });
-                          },
+                    divisions: ((currentCard.max ?? 2025) - (currentCard.min ?? 1900)).round(),
+                    onChanged: answered ? null : (value) => setState(() => estimationValue = value),
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 2),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _estimateEdgeLabel(
-                      '${(currentCard.min ?? 1900).round()}',
-                    ),
-                    _estimateEdgeLabel(
-                      '${(currentCard.max ?? 2025).round()}',
-                    ),
+                    _estimateEdgeLabel('${(currentCard.min ?? 1900).round()}'),
+                    _estimateEdgeLabel('${(currentCard.max ?? 2025).round()}'),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
@@ -603,36 +596,30 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
               style: FilledButton.styleFrom(
                 backgroundColor: figCream,
                 foregroundColor: figBackground,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
               child: const Text(
-                'Valider mon estimation',
-                style: TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
-                ),
+                'Valider',
+                style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700),
               ),
             ),
           ),
         ];
     }
+    return [];
   }
 
   AnswerVisualState _choiceState(int optionIndex) {
     if (!answered) return AnswerVisualState.normal;
-    if (optionIndex == currentCard.correctIndex) {
-      return AnswerVisualState.correct;
-    }
+    if (optionIndex == currentCard.correctIndex) return AnswerVisualState.correct;
     if (selectedIndex == optionIndex) return AnswerVisualState.wrong;
     return AnswerVisualState.normal;
   }
 
   Widget _estimateEdgeLabel(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.05),
         borderRadius: BorderRadius.circular(999),
@@ -641,6 +628,7 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
         text,
         style: const TextStyle(
           fontFamily: 'Inter',
+          fontSize: 12,
           color: Colors.white60,
           fontWeight: FontWeight.w600,
         ),
@@ -650,19 +638,20 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
 
   Widget _topPill(IconData icon, String value) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: figCream),
-          const SizedBox(width: 6),
+          Icon(icon, size: 16, color: figCream),
+          const SizedBox(width: 5),
           Text(
             value,
             style: const TextStyle(
               fontFamily: 'Inter',
+              fontSize: 13,
               fontWeight: FontWeight.w700,
               color: figCream,
             ),
@@ -672,6 +661,10 @@ class _SoloQuizPageState extends State<SoloQuizPage> {
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  CHALLENGE QUIZ PAGE (créateur – passe le score au waiting)
+// ═══════════════════════════════════════════════════════════════════
 
 class ChallengeQuizPage extends StatefulWidget {
   final List<QuizCardData> cards;
@@ -690,17 +683,21 @@ class ChallengeQuizPage extends StatefulWidget {
 }
 
 class _ChallengeQuizPageState extends State<ChallengeQuizPage> {
+  int _quizScore = 0;
+
   @override
   Widget build(BuildContext context) {
     return SoloQuizPage(
       cards: widget.cards,
-      onFinished: () {
+      onComplete: (score) async {
+        _quizScore = score;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => ChallengeWaitingPage(
               challengeAnswer: widget.challengeAnswer,
               gameId: widget.gameId,
+              quizScore: _quizScore,
             ),
           ),
         );
@@ -709,14 +706,20 @@ class _ChallengeQuizPageState extends State<ChallengeQuizPage> {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  CHALLENGE WAITING PAGE (attend le tour de l'adversaire)
+// ═══════════════════════════════════════════════════════════════════
+
 class ChallengeWaitingPage extends StatefulWidget {
   final String challengeAnswer;
   final String? gameId;
+  final int quizScore;
 
   const ChallengeWaitingPage({
     super.key,
     required this.challengeAnswer,
     this.gameId,
+    this.quizScore = 0,
   });
 
   @override
@@ -737,9 +740,9 @@ class _ChallengeWaitingPageState extends State<ChallengeWaitingPage> {
     if (widget.gameId == null) return;
     try {
       await GameService().submitCreatorTurn(
-        gameId: widget.gameId!,
-        answer: widget.challengeAnswer,
-        score: 0,
+        widget.gameId!,
+        widget.challengeAnswer,
+        quizScore: widget.quizScore,
       );
     } catch (e) {
       debugPrint('Erreur soumission tour: $e');
@@ -757,7 +760,9 @@ class _ChallengeWaitingPageState extends State<ChallengeWaitingPage> {
         builder: (context, snapshot) {
           final data = snapshot.data?.data() as Map<String, dynamic>?;
 
-          if (data != null && data['status'] == 'recapAvailable' && !_navigated) {
+          if (data != null &&
+              data['status'] == 'recapAvailable' &&
+              !_navigated) {
             _navigated = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               Navigator.pushAndRemoveUntil(
@@ -781,88 +786,99 @@ class _ChallengeWaitingPageState extends State<ChallengeWaitingPage> {
   }
 
   Widget _buildWaitingUI(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       body: _QuizBackground(
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const HomeScreen(),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                  icon: const Icon(Icons.close_rounded),
-                  color: figCream,
-                ),
-                const Spacer(),
-                const Text(
-                  '\u00c0 l\u2019autre de jouer.',
-                  style: TextStyle(
-                    fontFamily: 'Florisha',
-                    fontSize: 38,
-                    fontWeight: FontWeight.w700,
-                    height: 1.05,
-                    color: figCream,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  'Ton d\u00e9fi est lanc\u00e9, ta r\u00e9ponse est enregistr\u00e9e, et ta s\u00e9rie est termin\u00e9e.\n\u00c0 l\u2019autre de jouer maintenant.',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 17,
-                    color: Colors.white70,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 28),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.08),
-                    ),
-                  ),
+          bottom: false,
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const HomeScreen(),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                        color: figCream,
+                      ),
+                      const SizedBox(height: 60),
                       const Text(
-                        'Ta r\u00e9ponse',
+                        '\u00c0 l\u2019autre de jouer.',
+                        style: TextStyle(
+                          fontFamily: 'Florisha',
+                          fontSize: 38,
+                          fontWeight: FontWeight.w700,
+                          height: 1.05,
+                          color: figCream,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Ton d\u00e9fi est lanc\u00e9, ta r\u00e9ponse est enregistr\u00e9e, et ta s\u00e9rie est termin\u00e9e.\n\u00c0 l\u2019autre de jouer maintenant.',
                         style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white60,
-                          letterSpacing: 0.3,
+                          fontSize: 17,
+                          color: Colors.white70,
+                          height: 1.45,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        widget.challengeAnswer,
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: figCream,
-                          height: 1.35,
+                      const SizedBox(height: 28),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: Colors.white.withOpacity(0.08)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Ta r\u00e9ponse',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white60,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              widget.challengeAnswer,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: figCream,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
-                const Spacer(),
-                SizedBox(
+              ),
+              Container(
+                color: FigColors.background,
+                padding: EdgeInsets.fromLTRB(24, 12, 24, 20 + bottomPadding),
+                child: SizedBox(
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: () {
@@ -891,14 +907,18 @@ class _ChallengeWaitingPageState extends State<ChallengeWaitingPage> {
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  SOLO RESULT PAGE
+// ═══════════════════════════════════════════════════════════════════
 
 class SoloResultPage extends StatelessWidget {
   final int totalCards;
@@ -939,117 +959,134 @@ class SoloResultPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final result = _resultCopy();
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       body: _QuizBackground(
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const HomeScreen(),
+          bottom: false,
+          child: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (_) => const HomeScreen()),
+                            (route) => false,
+                          );
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                        color: figCream,
                       ),
-                      (route) => false,
-                    );
-                  },
-                  icon: const Icon(Icons.close_rounded),
-                  color: figCream,
-                ),
-                const Spacer(),
-                Text(
-                  result.$1,
-                  style: const TextStyle(
-                    fontFamily: 'Florisha',
-                    fontSize: 38,
-                    fontWeight: FontWeight.w700,
-                    height: 1.05,
-                    color: figCream,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  result.$2,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 17,
-                    color: Colors.white70,
-                    height: 1.45,
-                  ),
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const SoloIntroPage(),
+                      const SizedBox(height: 60),
+                      Text(
+                        result.$1,
+                        style: const TextStyle(
+                          fontFamily: 'Florisha',
+                          fontSize: 38,
+                          fontWeight: FontWeight.w700,
+                          height: 1.05,
+                          color: figCream,
                         ),
-                        (route) => false,
-                      );
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: figCream,
-                      foregroundColor: figBackground,
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22),
                       ),
-                    ),
-                    child: const Text(
-                      'Rejouer',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const HomeScreen(),
+                      const SizedBox(height: 18),
+                      Text(
+                        result.$2,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 17,
+                          color: Colors.white70,
+                          height: 1.45,
                         ),
-                        (route) => false,
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: figCream,
-                      side: const BorderSide(color: Color(0x33E9DFC8)),
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22),
                       ),
-                    ),
-                    child: const Text(
-                      'Retour accueil',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              Container(
+                color: FigColors.background,
+                padding: EdgeInsets.fromLTRB(24, 12, 24, 20 + bottomPadding),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SoloIntroPage(),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: figCream,
+                          foregroundColor: figBackground,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
+                        child: const Text(
+                          'Rejouer',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (_) => const HomeScreen()),
+                            (route) => false,
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: figCream,
+                          side: const BorderSide(color: Color(0x33E9DFC8)),
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                        ),
+                        child: const Text(
+                          'Retour accueil',
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  WIDGETS UTILITAIRES
+// ═══════════════════════════════════════════════════════════════════
 
 enum AnswerVisualState { normal, correct, wrong }
 
@@ -1095,7 +1132,7 @@ class AnswerButton extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(20),
@@ -1108,7 +1145,7 @@ class AnswerButton extends StatelessWidget {
                 text,
                 style: const TextStyle(
                   fontFamily: 'Inter',
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.w700,
                   height: 1.2,
                   color: figCream,
@@ -1140,9 +1177,7 @@ class _StartSessionCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28),
             color: Colors.white.withOpacity(0.06),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.08),
-            ),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.35),
@@ -1152,23 +1187,22 @@ class _StartSessionCard extends StatelessWidget {
             ],
           ),
           child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 22, vertical: 28),
+            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 24),
             child: Column(
               children: [
-                Icon(
-                  Icons.auto_awesome_rounded,
-                  color: figCream,
-                  size: 28,
-                ),
-                SizedBox(height: 12),
-                Text(
-                  'Commencer',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Florisha',
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    color: figCream,
+                Icon(Icons.auto_awesome_rounded, color: figCream, size: 28),
+                SizedBox(height: 10),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Commencer',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Florisha',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: figCream,
+                    ),
                   ),
                 ),
               ],
@@ -1197,10 +1231,7 @@ class _QuizBackground extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                figBackground,
-                figBackgroundDeep,
-              ],
+              colors: [figBackground, figBackgroundDeep],
             ),
           ),
         ),
@@ -1210,10 +1241,7 @@ class _QuizBackground extends StatelessWidget {
           right: -80,
           child: Opacity(
             opacity: 0.05,
-            child: Image.asset(
-              'assets/logo_symbol_calc.png',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/logo_symbol_calc.png', fit: BoxFit.cover),
           ),
         ),
         child,

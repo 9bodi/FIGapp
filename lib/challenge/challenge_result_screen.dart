@@ -26,7 +26,7 @@ class _ChallengeResultScreenState extends State<ChallengeResultScreen> {
   @override
   void initState() {
     super.initState();
-    GameService().markRecapSeen(gameId: widget.gameId);
+    GameService().markRecapSeen(widget.gameId);
   }
 
   Future<void> _navigateToNewGame() async {
@@ -102,7 +102,6 @@ class _ChallengeResultScreenState extends State<ChallengeResultScreen> {
 
         final game = snapshot.data!.data() as Map<String, dynamic>;
 
-        // Si la partie est passée en completed (l'autre a accepté la revanche)
         if (game['status'] == 'completed' && _revangeRequested) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _navigateToNewGame();
@@ -151,7 +150,7 @@ class _ChallengeResultScreenState extends State<ChallengeResultScreen> {
 
         return Scaffold(
           body: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -159,242 +158,263 @@ class _ChallengeResultScreenState extends State<ChallengeResultScreen> {
               ),
             ),
             child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    IconButton(
-                      onPressed: () => Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const HomeScreen()),
-                        (route) => false,
-                      ),
-                      icon: const Icon(Icons.close_rounded),
-                      color: FigColors.cream,
-                    ),
-                    const SizedBox(height: 16),
-
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.06),
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                            color: Colors.white.withOpacity(0.08)),
-                      ),
+              child: Column(
+                children: [
+                  // ── Contenu scrollable ──
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            scoreLabel,
-                            style: const TextStyle(
-                              fontFamily: 'Florisha',
-                              fontSize: 28,
-                              fontWeight: FontWeight.w700,
-                              color: FigColors.cream,
+                          IconButton(
+                            onPressed: () => Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const HomeScreen()),
+                              (route) => false,
+                            ),
+                            icon: const Icon(Icons.close_rounded),
+                            color: FigColors.cream,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Score
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(22),
+                              border: Border.all(
+                                  color: Colors.white.withOpacity(0.08)),
+                            ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  scoreLabel,
+                                  style: const TextStyle(
+                                    fontFamily: 'Florisha',
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w700,
+                                    color: FigColors.cream,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                  children: [
+                                    _ScoreBadge(
+                                        name: myName,
+                                        score: myScore,
+                                        isMe: true),
+                                    const SizedBox(width: 20),
+                                    const Text('—',
+                                        style: TextStyle(
+                                            color: Colors.white38,
+                                            fontSize: 24)),
+                                    const SizedBox(width: 20),
+                                    _ScoreBadge(
+                                        name: otherName,
+                                        score: otherScore,
+                                        isMe: false),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              _ScoreBadge(
-                                  name: myName,
-                                  score: myScore,
-                                  isMe: true),
-                              const SizedBox(width: 20),
-                              const Text('—',
-                                  style: TextStyle(
-                                      color: Colors.white38,
-                                      fontSize: 24)),
-                              const SizedBox(width: 20),
-                              _ScoreBadge(
-                                  name: otherName,
-                                  score: otherScore,
-                                  isMe: false),
-                            ],
+                          const SizedBox(height: 20),
+
+                          // Question
+                          Text(
+                            challengeQuestion,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white54,
+                            ),
                           ),
+                          const SizedBox(height: 14),
+
+                          // Réponses
+                          _AnswerCard(
+                            label: 'Toi',
+                            answer: myAnswer,
+                            isMe: true,
+                          ),
+                          const SizedBox(height: 12),
+                          _AnswerCard(
+                            label: otherName,
+                            answer: otherAnswer,
+                            isMe: false,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Bannière revanche
+                          if (otherWantsRevange)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: FigColors.cream.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(
+                                    color:
+                                        FigColors.cream.withOpacity(0.2)),
+                              ),
+                              child: Text(
+                                '$otherName veut une revanche !',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w700,
+                                  color: FigColors.cream,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 16),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                  ),
 
-                    Text(
-                      challengeQuestion,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white54,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
+                  // ── Boutons fixés en bas ──
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed:
+                                (iRequestedRevange || _revangeRequested)
+                                    ? null
+                                    : () async {
+                                        if (otherWantsRevange) {
+                                          final newGameId =
+                                              await GameService()
+                                                  .acceptRevange(
+                                                      widget.gameId);
+                                          if (!mounted) return;
 
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            _AnswerCard(
-                              label: 'Toi',
-                              answer: myAnswer,
-                              isMe: true,
+                                          final newGameData =
+                                              await FirebaseFirestore
+                                                  .instance
+                                                  .collection('games')
+                                                  .doc(newGameId)
+                                                  .get();
+                                          final newData =
+                                              newGameData.data();
+                                          final imNewCreator =
+                                              newData?['creatorId'] ==
+                                                  myId;
+
+                                          if (!mounted) return;
+
+                                          if (imNewCreator) {
+                                            Navigator.pushAndRemoveUntil(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    ChallengeSelectScreen(
+                                                  gameId: newGameId,
+                                                ),
+                                              ),
+                                              (route) => false,
+                                            );
+                                          } else {
+                                            Navigator.pushAndRemoveUntil(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    ChallengeOpponentFlow(
+                                                  gameId: newGameId,
+                                                  creatorName: newData?[
+                                                          'creatorName'] ??
+                                                      'Adversaire',
+                                                  challengeQuestion: newData?[
+                                                          'challengeQuestion'] ??
+                                                      '',
+                                                  status: newData?[
+                                                          'status'] ??
+                                                      'creatorPlaying',
+                                                ),
+                                              ),
+                                              (route) => false,
+                                            );
+                                          }
+                                        } else {
+                                          await GameService()
+                                              .requestRevange(
+                                                  widget.gameId);
+                                          if (!mounted) return;
+                                          setState(() =>
+                                              _revangeRequested = true);
+                                        }
+                                      },
+                            style: FilledButton.styleFrom(
+                              backgroundColor: FigColors.cream,
+                              foregroundColor: FigColors.background,
+                              disabledBackgroundColor:
+                                  FigColors.cream.withOpacity(0.4),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 20),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(22),
+                              ),
                             ),
-                            const SizedBox(height: 12),
-                            _AnswerCard(
-                              label: otherName,
-                              answer: otherAnswer,
-                              isMe: false,
+                            child: Text(
+                              otherWantsRevange
+                                  ? 'Accepter la revanche'
+                                  : (iRequestedRevange ||
+                                          _revangeRequested)
+                                      ? 'Revanche demandée\u2026'
+                                      : 'Revanche',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () =>
+                                Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const HomeScreen()),
+                              (route) => false,
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: FigColors.cream,
+                              side: BorderSide(
+                                  color:
+                                      FigColors.cream.withOpacity(0.3)),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 20),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(22),
+                              ),
+                            ),
+                            child: const Text(
+                              'Retour accueil',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-
-                    if (otherWantsRevange)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: FigColors.cream.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                              color: FigColors.cream.withOpacity(0.2)),
-                        ),
-                        child: Text(
-                          '$otherName veut une revanche !',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
-                            color: FigColors.cream,
-                          ),
-                        ),
-                      ),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: (iRequestedRevange || _revangeRequested)
-                            ? null
-                            : () async {
-                                if (otherWantsRevange) {
-                                  final newGameId =
-                                      await GameService().acceptRevange(
-                                    gameId: widget.gameId,
-                                  );
-                                  if (!mounted) return;
-
-                                  final newGameData =
-                                      await FirebaseFirestore.instance
-                                          .collection('games')
-                                          .doc(newGameId)
-                                          .get();
-                                  final newData = newGameData.data();
-                                  final imNewCreator =
-                                      newData?['creatorId'] == myId;
-
-                                  if (!mounted) return;
-
-                                  if (imNewCreator) {
-                                    Navigator.pushAndRemoveUntil(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            ChallengeSelectScreen(
-                                          gameId: newGameId,
-                                        ),
-                                      ),
-                                      (route) => false,
-                                    );
-                                  } else {
-                                    Navigator.pushAndRemoveUntil(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            ChallengeOpponentFlow(
-                                          gameId: newGameId,
-                                          creatorName:
-                                              newData?['creatorName'] ??
-                                                  'Adversaire',
-                                          challengeQuestion:
-                                              newData?['challengeQuestion'] ??
-                                                  '',
-                                          status:
-                                              newData?['status'] ??
-                                                  'creatorPlaying',
-                                        ),
-                                      ),
-                                      (route) => false,
-                                    );
-                                  }
-                                } else {
-                                  await GameService().requestRevange(
-                                    gameId: widget.gameId,
-                                  );
-                                  if (!mounted) return;
-                                  setState(
-                                      () => _revangeRequested = true);
-                                }
-                              },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: FigColors.cream,
-                          foregroundColor: FigColors.background,
-                          disabledBackgroundColor:
-                              FigColors.cream.withOpacity(0.4),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 20),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                        ),
-                        child: Text(
-                          otherWantsRevange
-                              ? 'Accepter la revanche'
-                              : (iRequestedRevange || _revangeRequested)
-                                  ? 'Revanche demandée\u2026'
-                                  : 'Revanche',
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const HomeScreen()),
-                          (route) => false,
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: FigColors.cream,
-                          side: BorderSide(
-                              color: FigColors.cream.withOpacity(0.3)),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 20),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(22),
-                          ),
-                        ),
-                        child: const Text(
-                          'Retour accueil',
-                          style: TextStyle(
-                            fontFamily: 'Inter',
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

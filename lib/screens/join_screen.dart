@@ -23,7 +23,6 @@ class _JoinScreenState extends State<JoinScreen> {
     super.initState();
     if (widget.inviteCode != null) {
       _codeController.text = widget.inviteCode!;
-      // Si le code est fourni via deep link, rejoindre automatiquement
       WidgetsBinding.instance.addPostFrameCallback((_) => _joinGame());
     }
   }
@@ -47,40 +46,33 @@ class _JoinScreenState extends State<JoinScreen> {
     });
 
     try {
-      // S'assurer que l'utilisateur est connecté
       await AuthService().signInAnonymously();
 
-      // Vérifier s'il a un nom
       final hasName = await AuthService().hasDisplayName();
       if (!hasName && mounted) {
-        // Aller entrer son nom puis revenir
         await Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const NameScreen()),
         );
       }
 
-      // Rejoindre la partie
       await GameService().joinGame(inviteCode: code);
 
-      // Récupérer les données de la partie pour afficher le défi
       final gameData = await GameService().getGameByInviteCode(code);
 
       if (!mounted) return;
 
-      // Naviguer vers le flow adversaire
       Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(
-    builder: (_) => ChallengeOpponentFlow(
-      gameId: gameData['id'],
-      creatorName: gameData['creatorName'] ?? 'Ton adversaire',
-      challengeQuestion: gameData['challengeQuestion'] ?? '',
-      status: gameData['status'] ?? 'creatorPlaying',
-    ),
-  ),
-);
-
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChallengeOpponentFlow(
+            gameId: gameData['id'],
+            creatorName: gameData['creatorName'] ?? 'Ton adversaire',
+            challengeQuestion: gameData['challengeQuestion'] ?? '',
+            status: gameData['status'] ?? 'creatorPlaying',
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -93,8 +85,9 @@ class _JoinScreenState extends State<JoinScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -102,94 +95,122 @@ class _JoinScreenState extends State<JoinScreen> {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Image.asset('assets/logo_full.png', width: 120),
-                ),
-                const SizedBox(height: 48),
-                const Text(
-                  'Rejoindre une partie',
-                  style: TextStyle(
-                    fontFamily: 'Florisha',
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    color: FigColors.cream,
+          child: Column(
+            children: [
+              // ── Contenu scrollable ──
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 40, 24, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Image.asset(
+                            'assets/logo_full.png', width: 120),
+                      ),
+                      const SizedBox(height: 48),
+                      const Text(
+                        'Rejoindre une partie',
+                        style: TextStyle(
+                          fontFamily: 'Florisha',
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          color: FigColors.cream,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Entre le code reçu pour rejoindre le défi.',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 16,
+                          color: Colors.white70,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      TextField(
+                        controller: _codeController,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 18,
+                          color: FigColors.cream,
+                          letterSpacing: 2,
+                        ),
+                        textAlign: TextAlign.center,
+                        textCapitalization:
+                            TextCapitalization.characters,
+                        decoration: InputDecoration(
+                          hintText: 'CODE D\'INVITATION',
+                          hintStyle: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            color: Colors.white.withOpacity(0.25),
+                            letterSpacing: 2,
+                          ),
+                          filled: true,
+                          fillColor:
+                              Colors.white.withOpacity(0.06),
+                          border: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(18),
+                            borderSide: BorderSide(
+                              color:
+                                  Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(18),
+                            borderSide: BorderSide(
+                              color:
+                                  Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(18),
+                            borderSide: const BorderSide(
+                                color: FigColors.cream),
+                          ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 18,
+                          ),
+                        ),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _error!,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Entre le code reçu pour rejoindre le défi.',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 16,
-                    color: Colors.white70,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                TextField(
-                  controller: _codeController,
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 18,
-                    color: FigColors.cream,
-                    letterSpacing: 2,
-                  ),
-                  textAlign: TextAlign.center,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: InputDecoration(
-                    hintText: 'CODE D\'INVITATION',
-                    hintStyle: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 16,
-                      color: Colors.white.withOpacity(0.25),
-                      letterSpacing: 2,
-                    ),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.06),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
-                      borderSide: const BorderSide(color: FigColors.cream),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 18,
-                    ),
-                  ),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _error!,
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 14,
-                      color: Colors.redAccent,
-                    ),
-                  ),
-                ],
-                const Spacer(),
-                SizedBox(
+              ),
+
+              // ── Bouton fixé en bas ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                child: SizedBox(
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: _loading ? null : _joinGame,
                     style: FilledButton.styleFrom(
                       backgroundColor: FigColors.cream,
                       foregroundColor: FigColors.background,
-                      disabledBackgroundColor: FigColors.cream.withOpacity(0.4),
-                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      disabledBackgroundColor:
+                          FigColors.cream.withOpacity(0.4),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(22),
                       ),
@@ -212,8 +233,8 @@ class _JoinScreenState extends State<JoinScreen> {
                           ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

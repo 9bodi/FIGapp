@@ -11,7 +11,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   static const Color figBackground = FigColors.background;
 
   bool _started = false;
@@ -19,45 +20,86 @@ class _SplashScreenState extends State<SplashScreen> {
   bool _pulse = false;
   bool _moveUp = false;
   bool _fadeOut = false;
+  bool _showSymbol = false;
+
+  late AnimationController _breatheController;
+  late Animation<double> _breatheAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Animation de respiration douce du logo symbole
+    _breatheController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat(reverse: true);
+
+    _breatheAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(
+        parent: _breatheController,
+        curve: Curves.easeInOut,
+      ),
+    );
+
+    // Faire apparaître le symbole en fondu au démarrage
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) setState(() => _showSymbol = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _breatheController.dispose();
+    super.dispose();
+  }
 
   Future<void> _startAnimation() async {
     if (_started) return;
     _started = true;
 
-    setState(() {
-      _pulse = true;
-    });
+    // Stop la respiration
+    _breatheController.stop();
 
-    await Future.delayed(const Duration(milliseconds: 220));
+    // Pulse au clic
+    setState(() => _pulse = true);
+    await Future.delayed(const Duration(milliseconds: 250));
 
     if (!mounted) return;
     setState(() {
       _pulse = false;
       _moveUp = true;
-      _showFullLogo = true;
     });
 
-    await Future.delayed(const Duration(milliseconds: 1700));
+    // Attendre un peu avant de montrer le full logo
+    await Future.delayed(const Duration(milliseconds: 400));
 
     if (!mounted) return;
-    setState(() {
-      _fadeOut = true;
-    });
+    setState(() => _showFullLogo = true);
 
-    await Future.delayed(const Duration(milliseconds: 350));
+    // Laisser le full logo s'afficher plus longtemps
+    await Future.delayed(const Duration(milliseconds: 2500));
 
-    // Vérifier si l'utilisateur a un nom
+    if (!mounted) return;
+    setState(() => _fadeOut = true);
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    // Navigation
     final hasName = await AuthService().hasDisplayName();
     final destination = hasName ? const HomeScreen() : const NameScreen();
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 350),
+        transitionDuration: const Duration(milliseconds: 500),
         pageBuilder: (_, __, ___) => destination,
         transitionsBuilder: (_, animation, __, child) {
           return FadeTransition(
-            opacity: animation,
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOut,
+            ),
             child: child,
           );
         },
@@ -72,7 +114,8 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: figBackground,
       body: AnimatedOpacity(
-        duration: const Duration(milliseconds: 350),
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOut,
         opacity: _fadeOut ? 0 : 1,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -83,15 +126,15 @@ class _SplashScreenState extends State<SplashScreen> {
             color: figBackground,
             child: Center(
               child: AnimatedSlide(
-                duration: const Duration(milliseconds: 500),
+                duration: const Duration(milliseconds: 600),
                 curve: Curves.easeOutCubic,
-                offset: _moveUp ? const Offset(0, -0.02) : Offset.zero,
+                offset: _moveUp ? const Offset(0, -0.03) : Offset.zero,
                 child: AnimatedScale(
-                  duration: const Duration(milliseconds: 220),
+                  duration: const Duration(milliseconds: 250),
                   curve: Curves.easeOut,
-                  scale: _pulse ? 1.06 : 1.0,
+                  scale: _pulse ? 1.08 : 1.0,
                   child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 520),
+                    duration: const Duration(milliseconds: 600),
                     switchInCurve: Curves.easeOutCubic,
                     switchOutCurve: Curves.easeInCubic,
                     transitionBuilder: (child, animation) {
@@ -99,12 +142,10 @@ class _SplashScreenState extends State<SplashScreen> {
                         parent: animation,
                         curve: Curves.easeOutCubic,
                       );
-
                       final slide = Tween<Offset>(
-                        begin: const Offset(0, 0.035),
+                        begin: const Offset(0, 0.04),
                         end: Offset.zero,
                       ).animate(fade);
-
                       return FadeTransition(
                         opacity: fade,
                         child: SlideTransition(
@@ -120,11 +161,24 @@ class _SplashScreenState extends State<SplashScreen> {
                             width: screenWidth * 0.74,
                             fit: BoxFit.contain,
                           )
-                        : Image.asset(
-                            'assets/logo_symbol.png',
-                            key: const ValueKey('symbol_logo'),
-                            width: screenWidth * 0.42,
-                            fit: BoxFit.contain,
+                        : AnimatedOpacity(
+                            duration: const Duration(milliseconds: 600),
+                            opacity: _showSymbol ? 1.0 : 0.0,
+                            child: AnimatedBuilder(
+                              animation: _breatheAnimation,
+                              builder: (context, child) {
+                                return Transform.scale(
+                                  scale: _breatheAnimation.value,
+                                  child: child,
+                                );
+                              },
+                              child: Image.asset(
+                                'assets/logo_symbol.png',
+                                key: const ValueKey('symbol_logo'),
+                                width: screenWidth * 0.42,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
                           ),
                   ),
                 ),

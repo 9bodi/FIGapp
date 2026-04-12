@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'theme/fig_theme.dart';
 import 'services/game_service.dart';
 import 'challenge/challenge_create_screen.dart';
+import 'challenge/challenge_select_screen.dart';
 import 'challenge/challenge_result_screen.dart';
 import 'challenge/challenge_opponent_flow.dart';
 import 'home_screen.dart';
@@ -155,26 +156,60 @@ class VsScreen extends StatelessWidget {
   void _openGame(BuildContext context, Map<String, dynamic> game) {
     final status = game['status'] ?? '';
     final gameId = game['id'] ?? '';
+    final myId = GameService().currentUserId;
+    final isCreator = game['creatorId'] == myId;
 
     switch (status) {
       case 'creatorPlaying':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const ChallengeCreateScreen(),
-          ),
-        );
+        if (isCreator) {
+          final hasOpponent = game['opponentId'] != null;
+          if (hasOpponent) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChallengeSelectScreen(
+                  gameId: gameId,
+                ),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ChallengeCreateScreen(),
+              ),
+            );
+          }
+        }
         break;
       case 'opponentTurn':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ChallengePendingScreen(
-              opponentName: game['opponentName'] ?? 'En attente\u2026',
-              challengeQuestion: game['challengeQuestion'] ?? '',
+        if (isCreator) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChallengePendingScreen(
+                opponentName:
+                    game['opponentName'] ?? 'En attente\u2026',
+                challengeQuestion:
+                    game['challengeQuestion'] ?? '',
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChallengeOpponentFlow(
+                gameId: gameId,
+                creatorName:
+                    game['creatorName'] ?? 'Adversaire',
+                challengeQuestion:
+                    game['challengeQuestion'] ?? '',
+                status: 'opponentTurn',
+              ),
+            ),
+          );
+        }
         break;
       case 'recapAvailable':
         Navigator.push(

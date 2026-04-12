@@ -6,7 +6,6 @@ import '../theme/fig_theme.dart';
 import '../quiz/quiz_screen.dart';
 import '../services/game_service.dart';
 
-
 class ChallengeSelectScreen extends StatefulWidget {
   final String? gameId;
 
@@ -15,7 +14,6 @@ class ChallengeSelectScreen extends StatefulWidget {
   @override
   State<ChallengeSelectScreen> createState() => _ChallengeSelectScreenState();
 }
-
 
 class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
   static const Color figBackground = FigColors.background;
@@ -28,6 +26,7 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
 
   int selectedIndex = 0;
   bool showAnswerArea = false;
+  bool _answerAreaReady = false;
 
   List<String> _prompts = [];
   List<QuizCardData> _quizCards = [];
@@ -51,7 +50,6 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
         _loading = false;
       });
     } catch (e) {
-      // Fallback sur les données locales si Firebase échoue
       if (!mounted) return;
       setState(() {
         _prompts = challengeCards;
@@ -59,6 +57,21 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
         _loading = false;
       });
     }
+  }
+
+  void _activateAnswerArea() {
+    setState(() => showAnswerArea = true);
+    // Attendre la fin de l'animation du carrousel avant d'afficher le champ
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) setState(() => _answerAreaReady = true);
+    });
+  }
+
+  void _deactivateAnswerArea() {
+    setState(() {
+      showAnswerArea = false;
+      _answerAreaReady = false;
+    });
   }
 
   @override
@@ -73,20 +86,15 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
     if (_loading) {
       return Scaffold(
         body: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                FigColors.background,
-                FigColors.backgroundDeep,
-              ],
+              colors: [FigColors.background, FigColors.backgroundDeep],
             ),
           ),
           child: const Center(
-            child: CircularProgressIndicator(
-              color: FigColors.cream,
-            ),
+            child: CircularProgressIndicator(color: FigColors.cream),
           ),
         ),
       );
@@ -95,17 +103,15 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
     final canContinue = _textController.text.trim().isNotEmpty;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
           Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  figBackground,
-                  Color(0xFF1A0D36),
-                ],
+                colors: [figBackground, Color(0xFF1A0D36)],
               ),
             ),
           ),
@@ -122,241 +128,276 @@ class _ChallengeSelectScreenState extends State<ChallengeSelectScreen> {
             ),
           ),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        color: figCream,
-                      ),
-                      const Spacer(),
-                      Image.asset(
-                        'assets/logo_full.png',
-                        width: 90,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    showAnswerArea ? '\u00c0 toi de r\u00e9pondre' : 'Choisis un d\u00e9fi',
-                    style: const TextStyle(
-                      fontFamily: 'Florisha',
-                      fontSize: 36,
-                      fontWeight: FontWeight.w700,
-                      color: figCream,
-                      height: 1.05,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    showAnswerArea
-                        ? 'Ton adversaire r\u00e9pondra au m\u00eame d\u00e9fi, puis vous encha\u00eenerez sur les m\u00eames questions.'
-                        : 'Fais d\u00e9filer les cartes et garde celle qui te donne le plus envie de r\u00e9pondre.',
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 16,
-                      color: Colors.white70,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 280),
-                    curve: Curves.easeOutCubic,
-                    height: showAnswerArea ? 170 : 340,
-                    child: PageView.builder(
-                      controller: _pageController,
-                      itemCount: _prompts.length,
-                      onPageChanged: (index) {
-                        setState(() {
-                          selectedIndex = index;
-                          if (showAnswerArea) {
-                            showAnswerArea = false;
-                          }
-                        });
-                      },
-                      itemBuilder: (context, index) {
-                        final isSelected = index == selectedIndex;
-                        return AnimatedPadding(
-                          duration: const Duration(milliseconds: 220),
-                          curve: Curves.easeOutCubic,
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: showAnswerArea
-                                ? (isSelected ? 6 : 20)
-                                : (isSelected ? 6 : 18),
+            child: Column(
+              children: [
+                // ── Contenu scrollable ──
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              color: figCream,
+                            ),
+                            const Spacer(),
+                            Image.asset('assets/logo_full.png', width: 90),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          showAnswerArea
+                              ? '\u00c0 toi de r\u00e9pondre'
+                              : 'Choisis un d\u00e9fi',
+                          style: const TextStyle(
+                            fontFamily: 'Florisha',
+                            fontSize: 36,
+                            fontWeight: FontWeight.w700,
+                            color: figCream,
+                            height: 1.05,
                           ),
-                          child: _ChallengeCarouselCard(
-                            text: _prompts[index],
-                            selected: isSelected,
-                            compact: showAnswerArea,
-                            onTap: () {
-                              if (index == selectedIndex) {
-                                setState(() {
-                                  showAnswerArea = true;
-                                });
-                              } else {
-                                setState(() {
-                                  selectedIndex = index;
-                                  showAnswerArea = false;
-                                });
-                                _pageController.animateToPage(
-                                  index,
-                                  duration: const Duration(milliseconds: 240),
-                                  curve: Curves.easeOutCubic,
-                                );
-                              }
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          showAnswerArea
+                              ? 'Ton adversaire r\u00e9pondra au m\u00eame d\u00e9fi, puis vous encha\u00eenerez sur les m\u00eames questions.'
+                              : 'Fais d\u00e9filer les cartes et garde celle qui te donne le plus envie de r\u00e9pondre.',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            color: Colors.white70,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // ── Carrousel ──
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeOutCubic,
+                          height: showAnswerArea ? 130 : 310,
+                          clipBehavior: Clip.none,
+                          child: PageView.builder(
+                            controller: _pageController,
+                            itemCount: _prompts.length,
+                            onPageChanged: (index) {
+                              setState(() {
+                                selectedIndex = index;
+                                if (showAnswerArea) {
+                                  _deactivateAnswerArea();
+                                }
+                              });
+                            },
+                            itemBuilder: (context, index) {
+                              final isSelected = index == selectedIndex;
+                              return AnimatedPadding(
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: showAnswerArea
+                                      ? (isSelected ? 4 : 12)
+                                      : (isSelected ? 6 : 16),
+                                ),
+                                child: _ChallengeCarouselCard(
+                                  text: _prompts[index],
+                                  selected: isSelected,
+                                  compact: showAnswerArea,
+                                  onTap: () {
+                                    if (index == selectedIndex) {
+                                      _activateAnswerArea();
+                                    } else {
+                                      setState(() {
+                                        selectedIndex = index;
+                                        _deactivateAnswerArea();
+                                      });
+                                      _pageController.animateToPage(
+                                        index,
+                                        duration: const Duration(
+                                            milliseconds: 240),
+                                        curve: Curves.easeOutCubic,
+                                      );
+                                    }
+                                  },
+                                ),
+                              );
                             },
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  if (!showAnswerArea)
-                    Center(
-                      child: SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.62,
-                        child: _RespondCtaCard(
-                          onTap: () {
-                            setState(() {
-                              showAnswerArea = true;
-                            });
-                          },
                         ),
-                      ),
-                    ),
-                  if (showAnswerArea) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: figCream,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Text(
-                            'Texte',
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.w700,
-                              color: figBackground,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.08),
-                            ),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(
-                                Icons.mic_none_rounded,
-                                size: 18,
-                                color: Colors.white38,
+                        const SizedBox(height: 14),
+
+                        // ── Bouton répondre OU zone de réponse ──
+                        if (!showAnswerArea)
+                          Center(
+                            child: SizedBox(
+                              width:
+                                  MediaQuery.of(context).size.width * 0.62,
+                              child: _RespondCtaCard(
+                                onTap: _activateAnswerArea,
                               ),
-                              SizedBox(width: 6),
-                              Text(
-                                'Vocal',
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white38,
+                            ),
+                          ),
+
+                        if (showAnswerArea && _answerAreaReady) ...[
+                          AnimatedOpacity(
+                            opacity: _answerAreaReady ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: figCream,
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                      ),
+                                      child: const Text(
+                                        'Texte',
+                                        style: TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontWeight: FontWeight.w700,
+                                          color: figBackground,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white
+                                            .withOpacity(0.05),
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                        border: Border.all(
+                                          color: Colors.white
+                                              .withOpacity(0.08),
+                                        ),
+                                      ),
+                                      child: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.mic_none_rounded,
+                                            size: 18,
+                                            color: Colors.white38,
+                                          ),
+                                          SizedBox(width: 6),
+                                          Text(
+                                            'Vocal',
+                                            style: TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.white38,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 14),
+                                TextField(
+                                  controller: _textController,
+                                  onChanged: (_) => setState(() {}),
+                                  maxLines: 4,
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 17,
+                                    color: figCream,
+                                    height: 1.4,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText:
+                                        'Balance ta r\u00e9ponse ici\u2026',
+                                    hintStyle: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      color: Colors.white38,
+                                    ),
+                                    filled: true,
+                                    fillColor:
+                                        Colors.white.withOpacity(0.04),
+                                    contentPadding:
+                                        const EdgeInsets.all(18),
+                                    border: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(24),
+                                      borderSide: BorderSide(
+                                        color: Colors.white
+                                            .withOpacity(0.08),
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(24),
+                                      borderSide: BorderSide(
+                                        color: Colors.white
+                                            .withOpacity(0.08),
+                                      ),
+                                    ),
+                                    focusedBorder:
+                                        const OutlineInputBorder(
+                                      borderRadius: BorderRadius.all(
+                                          Radius.circular(24)),
+                                      borderSide: BorderSide(
+                                        color: Color(0x66E9DFC8),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Placeholder pendant l'animation
+                        if (showAnswerArea && !_answerAreaReady)
+                          const SizedBox(height: 100),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    Expanded(
-                      child: TextField(
-                        controller: _textController,
-                        onChanged: (_) => setState(() {}),
-                        maxLines: null,
-                        expands: true,
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 17,
-                          color: figCream,
-                          height: 1.4,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Balance ta r\u00e9ponse ici\u2026',
-                          hintStyle: const TextStyle(
-                            fontFamily: 'Inter',
-                            color: Colors.white38,
-                          ),
-                          filled: true,
-                          fillColor: Colors.white.withOpacity(0.04),
-                          contentPadding: const EdgeInsets.all(18),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide(
-                              color: Colors.white.withOpacity(0.08),
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(24),
-                            borderSide: BorderSide(
-                              color: Colors.white.withOpacity(0.08),
-                            ),
-                          ),
-                          focusedBorder: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(24)),
-                            borderSide: BorderSide(
-                              color: Color(0x66E9DFC8),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
+                  ),
+                ),
+
+                // ── Bouton fixé en bas ──
+                if (showAnswerArea && _answerAreaReady)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    child: SizedBox(
                       width: double.infinity,
                       child: FilledButton(
                         onPressed: canContinue
                             ? () async {
-
-                                // Mettre à jour la question du défi dans Firestore
-if (widget.gameId != null) {
-  await GameService().updateChallengeQuestion(
-    gameId: widget.gameId!,
-    question: _prompts[selectedIndex],
-  );
-}
-
-if (!mounted) return;
-Navigator.push(
-  context,
-  MaterialPageRoute(
-    builder: (_) => ChallengeQuizPage(
-      cards: _quizCards,
-      challengeAnswer: _textController.text,
-      gameId: widget.gameId,
-    ),
-  ),
-);
-
+                                if (widget.gameId != null) {
+                                  await GameService()
+                                      .updateChallengeQuestion(
+                                    widget.gameId!,
+                                    _prompts[selectedIndex],
+                                  );
+                                }
+                                if (!mounted) return;
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => ChallengeQuizPage(
+                                      cards: _quizCards,
+                                      challengeAnswer:
+                                          _textController.text,
+                                      gameId: widget.gameId,
+                                    ),
+                                  ),
+                                );
                               }
                             : null,
                         style: FilledButton.styleFrom(
@@ -365,7 +406,8 @@ Navigator.push(
                           disabledBackgroundColor:
                               Colors.white.withOpacity(0.08),
                           disabledForegroundColor: Colors.white38,
-                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 20),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(22),
                           ),
@@ -379,9 +421,8 @@ Navigator.push(
                         ),
                       ),
                     ),
-                  ],
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         ],
@@ -435,22 +476,23 @@ class _ChallengeCarouselCard extends StatelessWidget {
             ],
           ),
           child: Padding(
-            padding: EdgeInsets.all(compact ? 16 : 20),
+            padding: EdgeInsets.all(compact ? 12 : 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
                   Icons.compare_arrows_rounded,
                   color: figCream,
-                  size: compact ? 20 : 24,
+                  size: compact ? 16 : 20,
                 ),
-                SizedBox(height: compact ? 12 : 18),
+                SizedBox(height: compact ? 6 : 12),
                 Expanded(
                   child: Text(
                     text,
+                    overflow: TextOverflow.fade,
                     style: TextStyle(
                       fontFamily: 'Inter',
-                      fontSize: compact ? 15 : 20,
+                      fontSize: compact ? 13 : 17,
                       fontWeight: FontWeight.w700,
                       color: figCream,
                       height: 1.25,
@@ -458,12 +500,12 @@ class _ChallengeCarouselCard extends StatelessWidget {
                   ),
                 ),
                 if (!compact) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 6),
                   Text(
-                    selected ? 'Carte s\u00e9lectionn\u00e9e' : 'Fais glisser',
+                    selected ? 'Carte sélectionnée' : 'Fais glisser',
                     style: TextStyle(
                       fontFamily: 'Inter',
-                      fontSize: 13,
+                      fontSize: 11,
                       color: selected ? figCream : Colors.white54,
                     ),
                   ),
@@ -495,30 +537,27 @@ class _RespondCtaCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.06),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.08),
-            ),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
           ),
           child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.edit_note_rounded,
-                  color: figCream,
-                  size: 22,
-                ),
-                SizedBox(width: 10),
-                Text(
-                  'R\u00e9pondre \u00e0 cette carte',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    color: figCream,
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.edit_note_rounded, color: figCream, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Répondre',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      color: figCream,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

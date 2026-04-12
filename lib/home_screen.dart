@@ -4,6 +4,7 @@ import 'services/game_service.dart';
 import 'vs_screen.dart';
 import 'quiz/quiz_screen.dart';
 import 'challenge/challenge_create_screen.dart';
+import 'challenge/challenge_select_screen.dart';
 import 'challenge/challenge_result_screen.dart';
 import 'challenge/challenge_opponent_flow.dart';
 import 'screens/join_screen.dart';
@@ -16,6 +17,8 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       backgroundColor: figBackground,
       body: Stack(
@@ -32,169 +35,191 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
           ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 40, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Image.asset(
-                      'assets/logo_full.png',
-                      width: 140,
-                    ),
-                  ),
-                  const SizedBox(height: 36),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _FigCard(
-                          title: "Solo",
-                          subtitle: "Quizz",
-                          icon: Icons.auto_awesome_rounded,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const SoloIntroPage(),
+          Column(
+            children: [
+              // ── Contenu scrollable avec SafeArea en haut seulement ──
+              Expanded(
+                child: SafeArea(
+                  bottom: false,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 40, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Image.asset(
+                            'assets/logo_full.png',
+                            width: 140,
+                          ),
+                        ),
+                        const SizedBox(height: 36),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _FigCard(
+                                title: "Solo",
+                                subtitle: "Quizz",
+                                icon: Icons.auto_awesome_rounded,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const SoloIntroPage(),
+                                    ),
+                                  );
+                                },
                               ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: _FigCard(
+                                title: "D\u00e9fier",
+                                subtitle: "Un.e ami.e",
+                                icon: Icons.compare_arrows_rounded,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const VsScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        const Text(
+                          "\u00c0 toi de jouer",
+                          style: TextStyle(
+                            fontFamily: 'Florisha',
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: figCream,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        StreamBuilder<List<Map<String, dynamic>>>(
+                          stream: GameService().watchMyGames(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 32),
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    color: figCream,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final games = snapshot.data ?? [];
+
+                            if (games.isEmpty) {
+                              return const _EmptyGamesCard();
+                            }
+
+                            return ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: games.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (_, index) {
+                                final game = games[index];
+                                return GestureDetector(
+                                  onTap: () => _openGame(context, game),
+                                  child: _GameCard(
+                                    title: game['opponentName'] ??
+                                        'En attente\u2026',
+                                    subtitle: _statusLabel(game),
+                                  ),
+                                );
+                              },
                             );
                           },
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _FigCard(
-                          title: "D\u00e9fier",
-                          subtitle: "Un.e ami.e",
-                          icon: Icons.compare_arrows_rounded,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const VsScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                  const Text(
-                    "\u00c0 toi de jouer",
-                    style: TextStyle(
-                      fontFamily: 'Florisha',
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: figCream,
+                        const SizedBox(height: 16),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: GameService().watchMyGames(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(
-                              color: figCream,
+                ),
+              ),
+
+              // ── Boutons fixés en bas avec fond continu ──
+              Container(
+                color: figBackground,
+                padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + bottomPadding),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  const ChallengeCreateScreen(),
                             ),
                           );
-                        }
-
-                        final games = snapshot.data ?? [];
-
-                        if (games.isEmpty) {
-                          return const _EmptyGamesCard();
-                        }
-
-                        return ListView.separated(
-                          itemCount: games.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 10),
-                          itemBuilder: (_, index) {
-                            final game = games[index];
-                            return GestureDetector(
-                              onTap: () => _openGame(context, game),
-                              child: _GameCard(
-                                title: game['opponentName'] ??
-                                    'En attente\u2026',
-                                subtitle: _statusLabel(game),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                const ChallengeCreateScreen(),
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: figCream,
+                          foregroundColor: figBackground,
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                        );
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: figCream,
-                        foregroundColor: figBackground,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
                         ),
-                      ),
-                      child: const Text(
-                        "Inviter quelqu'un",
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const JoinScreen(),
+                        child: const Text(
+                          "Inviter quelqu'un",
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
                           ),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: FigColors.cream,
-                        side: BorderSide(
-                          color: FigColors.cream.withOpacity(0.3),
-                        ),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child: const Text(
-                        "Rejoindre une partie",
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const JoinScreen(),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: FigColors.cream,
+                          side: BorderSide(
+                            color: FigColors.cream.withOpacity(0.3),
+                          ),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: const Text(
+                          "Rejoindre une partie",
+                          style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -210,12 +235,22 @@ class HomeScreen extends StatelessWidget {
     switch (status) {
       case 'creatorPlaying':
         if (isCreator) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const ChallengeCreateScreen(),
-            ),
-          );
+          final hasOpponent = game['opponentId'] != null;
+          if (hasOpponent) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChallengeSelectScreen(gameId: gameId),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ChallengeCreateScreen(),
+              ),
+            );
+          }
         }
         break;
       case 'opponentTurn':
@@ -224,10 +259,8 @@ class HomeScreen extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (_) => ChallengePendingScreen(
-                opponentName:
-                    game['opponentName'] ?? 'En attente\u2026',
-                challengeQuestion:
-                    game['challengeQuestion'] ?? '',
+                opponentName: game['opponentName'] ?? 'En attente\u2026',
+                challengeQuestion: game['challengeQuestion'] ?? '',
               ),
             ),
           );
@@ -237,10 +270,8 @@ class HomeScreen extends StatelessWidget {
             MaterialPageRoute(
               builder: (_) => ChallengeOpponentFlow(
                 gameId: gameId,
-                creatorName:
-                    game['creatorName'] ?? 'Adversaire',
-                challengeQuestion:
-                    game['challengeQuestion'] ?? '',
+                creatorName: game['creatorName'] ?? 'Adversaire',
+                challengeQuestion: game['challengeQuestion'] ?? '',
                 status: 'opponentTurn',
               ),
             ),
@@ -251,8 +282,7 @@ class HomeScreen extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                ChallengeResultScreen(gameId: gameId),
+            builder: (_) => ChallengeResultScreen(gameId: gameId),
           ),
         );
         break;
