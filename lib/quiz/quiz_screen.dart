@@ -32,7 +32,8 @@ class _SoloIntroPageState extends State<SoloIntroPage> {
 
   Future<void> _loadCards() async {
     try {
-      final cards = await QuizService().getAllCards();
+      final cards = await QuizService().getSoloCards();
+
       if (!mounted) return;
       setState(() => _cards = cards);
     } catch (e) {

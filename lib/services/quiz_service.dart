@@ -4,7 +4,7 @@ import '../models/quiz_card.dart';
 class QuizService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  /// Récupérer toutes les cartes quiz
+  /// Récupérer toutes les cartes quiz (usage interne)
   Future<List<QuizCardData>> getAllCards() async {
     final snap = await _db.collection('quizCards').get();
 
@@ -28,7 +28,14 @@ class QuizService {
     }).toList();
   }
 
-  /// Récupérer des cartes aléatoires pour un challenge
+  /// Récupérer 5 cartes aléatoires pour le mode solo
+  Future<List<QuizCardData>> getSoloCards({int count = 5}) async {
+    final all = await getAllCards();
+    all.shuffle();
+    return all.take(count).toList();
+  }
+
+  /// Récupérer 5 cartes aléatoires pour un challenge
   Future<List<QuizCardData>> getChallengeCards({int count = 5}) async {
     final all = await getAllCards();
     all.shuffle();
